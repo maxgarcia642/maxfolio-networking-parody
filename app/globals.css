@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-start: #e0f7fa;
+  --background-end: #ffffff;
+}
+
+body {
+  /* --- GLOBAL BACKGROUND --- */
+  /* This creates the diagonal Sky-to-Green gradient seen in Frutiger Aero */
+  background: linear-gradient(to bottom right, #a2d9ff, #ffffff, #b6f0ce);
+  background-attachment: fixed; /* Keeps bg still while you scroll */
+  color: #1a202c;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- THE MASTER CLASS: .aero-card --- */
+/* Apply this class to ANY div to make it look like a glossy glass pane */
+.aero-card {
+  @apply relative overflow-hidden bg-white/30 backdrop-blur-md border border-white/60 rounded-3xl shadow-aero transition-all duration-300;
+}
+
+/* This pseudo-element creates the "shine" on the top 50% of the card */
+.aero-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.1) 100%);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+}
+
+/* Custom Scrollbar (to match the theme) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.3);
+}
+::-webkit-scrollbar-thumb {
+  background: #1098ba;
+  border-radius: 5px;
+  border: 2px solid white;
+}
