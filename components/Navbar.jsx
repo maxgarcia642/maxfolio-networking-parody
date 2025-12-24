@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import Link from 'next/link';
 
 const navItems = [
   { id: 'home', label: 'Home', desc: 'Back to start', href: '/' },
@@ -20,23 +21,23 @@ export default function Navbar() {
     >
       <div className="aero-card !rounded-full px-4 py-2 flex gap-1 sm:gap-4 shadow-2xl bg-white/60">
         {/* Maxfolio Logo/Brand */}
-        <a 
+        <Link 
           href="/"
           className="px-4 py-2 rounded-full text-sm font-extrabold text-aero-ocean mr-2 flex items-center"
         >
           🎭 Maxfolio
-        </a>
+        </Link>
         
         {navItems.map((item) => (
           <div key={item.id} className="relative group">
-            <a 
+            <Link 
               href={item.href}
               className="px-4 py-2 rounded-full text-sm font-bold text-slate-700 hover:text-aero-ocean transition-all duration-200 relative z-10 block"
               onMouseEnter={() => setHovered(item.id)}
               onMouseLeave={() => setHovered(null)}
             >
               {item.label}
-            </a>
+            </Link>
             
             {/* Logic: If hovered, show the blue glow background */}
             {hovered === item.id && (

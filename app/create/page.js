@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
-import { generateUsername, generateJobTitles, generateTheme, validateWordCount, getWordCount } from '../../lib/generators';
+import { generateUsername, generateJobTitles, generateTheme, validateWordCount, getWordCount, sanitizeUsername } from '../../lib/generators';
 import { createProfile, uploadPhoto, isUsernameAvailable } from '../../lib/supabase';
 import { Sparkles, Upload, Loader2 } from 'lucide-react';
 
@@ -164,7 +164,7 @@ export default function CreatePage() {
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  onChange={(e) => setUsername(sanitizeUsername(e.target.value))}
                   className="flex-1 px-4 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-aero-ocean"
                   placeholder="cosmic-banana-47"
                   required
