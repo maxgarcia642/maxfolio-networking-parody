@@ -1,5 +1,6 @@
-This 2nd try may do.
-# 🌊 Maximiliano Garcia | Frutiger Aero Portfolio V2
+Not functional and broken, but still was interesting trying to work it out.
+Maybe it can be reused as something by the general public.
+# 🌊 Maximiliano Garcia | Frutiger Aero Portfolio - Database Test
 
 A high-performance, skeuomorphic web experience built with **Next.js 14**. This project transitions from a static HTML site to a dynamic React application, strictly adhering to the **Frutiger Aero** aesthetic: gloss, glassmorphism, and vibrant nature-tech gradients.
 
