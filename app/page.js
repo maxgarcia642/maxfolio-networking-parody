@@ -2,7 +2,10 @@
 
 import Navbar from '../components/Navbar';
 import Utilities from '../components/Utilities';
-import { ArrowDown, Terminal, Gamepad2 } from 'lucide-react';
+import PixelStudio from '../components/PixelStudio';
+import Contact from '../components/Contact';
+import { ArrowDown, Terminal, Gamepad2, Code2, Database, Smartphone } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 /* WHITELINE: This is the main assembly point for your portfolio.
    It brings together the Hero section, your Code repos, and the 
@@ -42,41 +45,145 @@ export default function Home() {
 
       {/* --- PROGRAMMING SECTION --- */}
       <section id="programming" className="py-20 px-4 max-w-6xl mx-auto">
-        <div className="aero-card p-8 bg-gradient-to-br from-blue-50 to-white">
-          <h2 className="text-3xl font-extrabold text-aero-ocean mb-6 flex items-center gap-3">
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="aero-card p-8 bg-gradient-to-br from-blue-50 to-white"
+        >
+          <h2 className="text-3xl md:text-4xl font-extrabold text-aero-ocean mb-6 flex items-center gap-3">
             <Terminal /> Programming Repositories
           </h2>
+          <p className="text-slate-600 mb-8 text-lg">
+            A collection of my coding projects across various languages and frameworks
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-gray-900 rounded-xl p-4 text-white shadow-xl hover:scale-105 transition-transform">
-              <h3 className="font-bold text-green-400 mb-2">Python Projects</h3>
-              <p className="text-sm text-gray-400 mb-4">High School CS Work & Scripts</p>
-              <a href="https://github.com/maxgarcia642" target="_blank" className="text-xs bg-gray-700 px-2 py-1 rounded">View on GitHub</a>
-            </div>
-            <div className="bg-gray-900 rounded-xl p-4 text-white shadow-xl hover:scale-105 transition-transform">
-              <h3 className="font-bold text-blue-400 mb-2">Java AP CS</h3>
-              <p className="text-sm text-gray-400 mb-4">Object Oriented Programming</p>
-              <a href="https://github.com/maxgarcia642" target="_blank" className="text-xs bg-gray-700 px-2 py-1 rounded">View on GitHub</a>
+            {/* Python Projects */}
+            <motion.div 
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-gray-900 rounded-xl p-6 text-white shadow-xl transition-all group"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <Code2 className="text-green-400" size={32} />
+                <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Python</span>
+              </div>
+              <h3 className="font-bold text-xl text-green-400 mb-2">Python Projects</h3>
+              <p className="text-sm text-gray-400 mb-4">High School CS Work, Scripts & Automation Tools</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">Algorithms</span>
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">Data Structures</span>
+              </div>
+              <a 
+                href="https://github.com/maxgarcia642" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm bg-gray-700 px-4 py-2 rounded-lg inline-block group-hover:bg-green-500 transition-colors"
+              >
+                View on GitHub →
+              </a>
+            </motion.div>
+
+            {/* Java Projects */}
+            <motion.div 
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-gray-900 rounded-xl p-6 text-white shadow-xl transition-all group"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <Database className="text-blue-400" size={32} />
+                <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">Java</span>
+              </div>
+              <h3 className="font-bold text-xl text-blue-400 mb-2">Java AP CS</h3>
+              <p className="text-sm text-gray-400 mb-4">Object Oriented Programming & Design Patterns</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">OOP</span>
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">AP CSA</span>
+              </div>
+              <a 
+                href="https://github.com/maxgarcia642" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm bg-gray-700 px-4 py-2 rounded-lg inline-block group-hover:bg-blue-500 transition-colors"
+              >
+                View on GitHub →
+              </a>
+            </motion.div>
+
+            {/* Web Development */}
+            <motion.div 
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="bg-gray-900 rounded-xl p-6 text-white shadow-xl transition-all group"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <Smartphone className="text-purple-400" size={32} />
+                <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">React</span>
+              </div>
+              <h3 className="font-bold text-xl text-purple-400 mb-2">Web Development</h3>
+              <p className="text-sm text-gray-400 mb-4">Modern web apps with React, Next.js & Tailwind</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">Next.js</span>
+                <span className="text-xs bg-gray-800 px-2 py-1 rounded">React</span>
+              </div>
+              <a 
+                href="https://github.com/maxgarcia642" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm bg-gray-700 px-4 py-2 rounded-lg inline-block group-hover:bg-purple-500 transition-colors"
+              >
+                View on GitHub →
+              </a>
+            </motion.div>
+          </div>
+
+          {/* GitHub Stats Section */}
+          <div className="mt-8 p-6 bg-white/60 rounded-xl border border-white/80">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">Contribution Activity</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-aero-ocean mb-1">15+</div>
+                <div className="text-sm text-slate-600">Repositories</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-aero-grass mb-1">500+</div>
+                <div className="text-sm text-slate-600">Commits</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600 mb-1">5+</div>
+                <div className="text-sm text-slate-600">Languages</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-orange-600 mb-1">2+</div>
+                <div className="text-sm text-slate-600">Years</div>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <Utilities />
 
       {/* --- GAME SECTION --- */}
-      <section id="game" className="py-20 px-4 text-center">
-         <div className="aero-card max-w-2xl mx-auto p-10 bg-white">
-            <h2 className="text-3xl font-bold text-aero-grass mb-4 flex justify-center gap-2 items-center">
-              <Gamepad2 /> Pixel Studio
+      <section id="game" className="py-20 px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-aero-grass mb-4 flex justify-center gap-2 items-center">
+              <Gamepad2 /> Pixel Art Studio
             </h2>
-            <p className="text-slate-600 mb-8">
-              A dedicated space for pixel art and retro gaming.
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+              Create retro-style 16x16 pixel art. Draw, design, and download your creations!
             </p>
-            <div className="w-full h-64 bg-gray-100 rounded-xl border-4 border-dashed border-gray-300 flex items-center justify-center">
-               <span className="text-slate-400 font-mono">Game Canvas Initializing</span>
-            </div>
-         </div>
+          </div>
+          <PixelStudio />
+        </motion.div>
       </section>
+
+      {/* --- CONTACT SECTION --- */}
+      <Contact />
 
       <footer className="py-6 text-center text-slate-500 text-sm bg-white/40 backdrop-blur-sm">
         &copy; 2025 Maximiliano Garcia. Powered by Next.js & Frutiger Aero.
