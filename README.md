@@ -1,39 +1,55 @@
-Not functional and broken, but still was interesting trying to work it out.
-Maybe it can be reused as something by the general public.
-# 🌊 Maximiliano Garcia | Frutiger Aero Portfolio - Database Test
+[replit.md](https://github.com/user-attachments/files/24398418/replit.md)
+# Maxfolio
 
-A high-performance, skeuomorphic web experience built with **Next.js 14**. This project transitions from a static HTML site to a dynamic React application, strictly adhering to the **Frutiger Aero** aesthetic: gloss, glassmorphism, and vibrant nature-tech gradients.
+## Overview
 
-## 🚀 Live Demo
-**Hosted on Vercel:** [Your-Vercel-Link-Here.vercel.app]
+Maxfolio is a comedic, minimalist portfolio generator website where users can create absurd, randomized personal portfolios without requiring authentication. The application generates random usernames, job titles, bios, and themes to create shareable, humorous portfolio pages. The project features a nostalgic Windows 95 aesthetic with retro UI styling.
 
-## 🎨 Design Language: Frutiger Aero
-This portfolio revives the 2004–2013 "Aero" era using modern CSS:
-- **Glossy UI:** Custom `.aero-card` classes with multi-stop reflective gradients.
-- **Glassmorphism:** Heavy use of `backdrop-blur` and high-contrast white borders.
-- **Vibrant Palette:** Sky Blue (#1098ba) and Grass Green (#308a11) accents.
+## User Preferences
 
-## 🛠️ Tech Stack
-- **Framework:** [Next.js 14](https://nextjs.org/) (App Router)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Animations:** [Framer Motion](https://www.framer.com/motion/) (Liquid smooth transitions)
-- **Icons:** [Lucide React](https://lucide.dev/)
-- **Deployment:** [Vercel](https://vercel.com/)
+Preferred communication style: Simple, everyday language.
 
-## ✨ Key Features
-- **Floating Glass Navbar:** Interactive pill-shaped navigation with spring-physics animations.
-- **Dynamic Utilities Dashboard:** Tabbed interface for Finance (Stock tracking), Music (Vinyl/Discogs agent), and Engineering tools.
-- **Programming Terminal:** A styled code-browser section pulling raw data from my GitHub repositories.
-- **Pixel Art Studio:** A React-based 16x16 drawing canvas (In-Progress).
+## System Architecture
 
-## 📁 Project Structure
-```text
-├── app/
-│   ├── globals.css      # Custom Aero gloss & background logic
-│   ├── layout.js       # Global shell and fonts
-│   └── page.js         # Master homepage composition
-├── components/
-│   ├── Navbar.jsx      # Glossy navigation logic
-│   └── Utilities.jsx   # Tabbed dashboard logic
-└── public/
-    └── assets/         # Storage for Resume.pdf and Project PDFs
+### Frontend Architecture
+- **Framework**: React 18 with Vite as the build tool
+- **Styling**: Tailwind CSS with custom Windows 95-inspired theme
+- **Routing**: React Router DOM for client-side navigation
+- **UI Utilities**: clsx and tailwind-merge for conditional class handling
+- **Icons**: Lucide React for icon components
+
+### Design Patterns
+- **Component-based architecture**: Standard React component structure under `/src` directory
+- **Utility functions**: Generator functions in `/lib/generators.js` for randomized content creation
+- **CSS-in-JS hybrid**: Tailwind utility classes combined with custom CSS in `src/index.css`
+
+### Content Generation System
+The application uses predefined arrays of words and templates to generate:
+- Random usernames (prefix + noun + number pattern)
+- Absurd job titles with fake responsibilities and pay rates
+- Comedic bio statements
+- Random visual themes (Windows 95 style and brutalist style)
+
+### Build Configuration
+- Vite configured for development on port 5000 with open host access
+- PostCSS pipeline with Tailwind CSS and Autoprefixer
+- Content paths configured for `/src`, `/app`, and `/components` directories
+
+## External Dependencies
+
+### Core Libraries
+- **React/React-DOM**: UI framework
+- **React Router DOM**: Client-side routing
+- **Lucide React**: Icon library
+
+### Styling
+- **Tailwind CSS**: Utility-first CSS framework
+- **clsx/tailwind-merge**: Class name utilities
+
+### Build Tools
+- **Vite**: Development server and bundler
+- **PostCSS/Autoprefixer**: CSS processing
+
+### Planned Integrations (from project notes)
+- **Vercel**: Deployment platform
+- **Supabase**: Backend database for storing generated profiles (no-auth flow)
