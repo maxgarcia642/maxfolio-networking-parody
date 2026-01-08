@@ -1,6 +1,21 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateJob, generateMatch } from '../../lib/generators';
+
+// Piano note frequencies (A4 = 440Hz standard tuning)
+const NOTE_FREQUENCIES = {
+  'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
+  'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
+  'A#4': 466.16, 'B4': 493.88, 'C5': 523.25, 'C#5': 554.37, 'D5': 587.33,
+  'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
+  'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77, 'C6': 1046.50
+};
+
+const KEYBOARD_MAP = {
+  'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4', 'd': 'E4', 'f': 'F4',
+  't': 'F#4', 'g': 'G4', 'y': 'G#4', 'h': 'A4', 'u': 'A#4', 'j': 'B4',
+  'k': 'C5', 'o': 'C#5', 'l': 'D5', 'p': 'D#5', ';': 'E5'
+};
 
 export default function Explore() {
   const [activeTab, setActiveTab] = useState('users');
@@ -16,8 +31,32 @@ export default function Explore() {
   const [spamMessages, setSpamMessages] = useState([]);
   const canvasRef = useRef(null);
   
+  // Piano/Artist state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedNotes, setRecordedNotes] = useState([]);
+  const [recordingStartTime, setRecordingStartTime] = useState(null);
+  const [activeKeys, setActiveKeys] = useState(new Set());
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioContextRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const destinationRef = useRef(null);
+  
   // Chaotic Timeline State
   const [timeline, setTimeline] = useState({ month: 'JAN', year: 2025 });
+
+  // Initialize Audio Context
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      destinationRef.current = audioContextRef.current.createMediaStreamDestination();
+    }
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -50,16 +89,10 @@ export default function Explore() {
       let y = canvas.height / 2;
       let points = [{x, y, color: '#00ff00'}];
       
-      /**
-       * Core drawing function for the canvas.
-       * Handles background, grid lines, and the main jittery graph line.
-       */
       const draw = () => {
-        // Clear background with deep black
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw grid lines for that vintage terminal look
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -67,7 +100,6 @@ export default function Explore() {
         for(let i=0; i<canvas.height; i+=40) { ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); }
         ctx.stroke();
 
-        // Draw the main graph line based on accumulated points
         ctx.lineWidth = 3;
         for(let i=1; i<points.length; i++) {
             ctx.strokeStyle = points[i].color;
@@ -77,27 +109,20 @@ export default function Explore() {
             ctx.stroke();
         }
 
-        // Draw the "active" pixel tracker
         ctx.fillStyle = '#fff';
         ctx.fillRect(x-4, y-4, 8, 8);
 
-        // Recursive call for smooth animation
         if (activeTab === 'economy') {
             requestAnimationFrame(draw);
         }
       };
 
-      /**
-       * Interval for calculating the chaotic movement.
-       * Uses left-leaning bias and random spikes for volatility.
-       */
       const interval = setInterval(() => {
         const roll = Math.random();
-        let dx = (Math.random() - 0.7) * 20; // Bias towards left movement
-        let dy = (Math.random() - 0.5) * 80; // High vertical squiggling
+        let dx = (Math.random() - 0.7) * 20;
+        let dy = (Math.random() - 0.5) * 80;
         let color = '#00ff00';
 
-        // 360-style vertical shoot (Moon shot or Rug pull)
         if (roll < 0.1) { 
             dy = (Math.random() - 0.5) * 200;
             color = roll < 0.05 ? '#ff0000' : '#00ffff';
@@ -106,7 +131,6 @@ export default function Explore() {
         x += dx;
         y += dy;
         
-        // Loop-de-loop logic for that specific "scribble" request
         if (roll < 0.03) {
             points.push({x: x-30, y: y-30, color});
             points.push({x: x-60, y: y, color});
@@ -114,22 +138,18 @@ export default function Explore() {
             x -= 60;
         }
 
-        // Boundary enforcement (keep it in the viewport)
         if (y < 10) y = 10;
         if (y > canvas.height - 10) y = canvas.height - 10;
         if (x > canvas.width) x = canvas.width;
-        if (x < 0) x = canvas.width; // Wrap around if it goes off left
+        if (x < 0) x = canvas.width;
 
         points.push({x, y, color});
         
-        // Limit point count to prevent memory leaks/slowdowns
         if (points.length > 100) points.shift();
         
-        // Update profit based on the last movement's intensity
         const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
         setProfit(p => p + delta);
 
-        // Update Chaotic Timeline X-Axis
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
         setTimeline(prev => {
             const nextMonth = months[Math.floor(Math.random() * months.length)];
@@ -142,6 +162,130 @@ export default function Explore() {
       return () => clearInterval(interval);
     }
   }, [activeTab]);
+
+  // Piano keyboard event handlers
+  useEffect(() => {
+    if (activeTab !== 'artist') return;
+    
+    const handleKeyDown = (e) => {
+      const note = KEYBOARD_MAP[e.key.toLowerCase()];
+      if (note && !activeKeys.has(note)) {
+        playNote(note);
+        setActiveKeys(prev => new Set([...prev, note]));
+      }
+    };
+    
+    const handleKeyUp = (e) => {
+      const note = KEYBOARD_MAP[e.key.toLowerCase()];
+      if (note) {
+        setActiveKeys(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(note);
+          return newSet;
+        });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [activeTab, activeKeys, isRecording]);
+
+  const playNote = useCallback((note) => {
+    if (!audioContextRef.current) return;
+    
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note], ctx.currentTime);
+    
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    // Also connect to media stream for recording
+    if (isRecording && destinationRef.current) {
+      gainNode.connect(destinationRef.current);
+    }
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.5);
+    
+    // Record the note if recording
+    if (isRecording && recordingStartTime) {
+      const timestamp = Date.now() - recordingStartTime;
+      setRecordedNotes(prev => [...prev, { note, timestamp }]);
+    }
+  }, [isRecording, recordingStartTime]);
+
+  const startRecording = () => {
+    if (!audioContextRef.current || !destinationRef.current) return;
+    
+    audioChunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(destinationRef.current.stream);
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunksRef.current.push(e.data);
+      }
+    };
+    
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+    setIsRecording(true);
+    setRecordingStartTime(Date.now());
+    setRecordedNotes([]);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const downloadRecording = () => {
+    if (audioChunksRef.current.length === 0) {
+      alert('No audio recorded yet! Play some notes while recording.');
+      return;
+    }
+    
+    const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `maxfolio-composition-${Date.now()}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const playbackRecording = async () => {
+    if (recordedNotes.length === 0) {
+      alert('No notes recorded! Record something first.');
+      return;
+    }
+    
+    setIsPlaying(true);
+    const startTime = Date.now();
+    
+    for (const { note, timestamp } of recordedNotes) {
+      const delay = timestamp - (Date.now() - startTime);
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      playNote(note);
+    }
+    
+    setIsPlaying(false);
+  };
 
   const handleAcceptJob = (job) => {
     if (job.expired) {
@@ -165,7 +309,6 @@ export default function Explore() {
     const newMatches = Array.from({ length: 8 }, () => generateMatch());
     setMatches(prev => [...newMatches, ...prev].slice(0, 50));
     
-    // Generate some spam messages for the chat box
     const messages = [
         "Are you real? My source code says you are.",
         "Hey... noticed you browsing the void.",
@@ -201,8 +344,17 @@ export default function Explore() {
       return () => clearInterval(jobTicker);
   }, []);
 
+  // Piano keys layout
+  const whiteKeys = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5', 'C6'];
+  const blackKeys = [
+    { note: 'C#4', position: 0 }, { note: 'D#4', position: 1 },
+    { note: 'F#4', position: 3 }, { note: 'G#4', position: 4 }, { note: 'A#4', position: 5 },
+    { note: 'C#5', position: 7 }, { note: 'D#5', position: 8 },
+    { note: 'F#5', position: 10 }, { note: 'G#5', position: 11 }, { note: 'A#5', position: 12 }
+  ];
+
   return (
-    <div className="p-8 flex flex-col items-center min-h-screen bg-[#008080]">
+    <div className="p-8 flex flex-col items-center min-h-screen">
       {isShrunk && (
         <div 
             className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center cursor-pointer group"
@@ -238,7 +390,8 @@ export default function Explore() {
               {id: 'users', label: 'Active Users', icon: '👥'},
               {id: 'jobs', label: 'Available Jobs', icon: '💼'},
               {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
-              {id: 'economy', label: 'Economy', icon: '💹'}
+              {id: 'economy', label: 'Economy', icon: '💹'},
+              {id: 'artist', label: 'Artist', icon: '🎹'}
           ].map(tab => (
               <button 
                 key={tab.id}
@@ -292,7 +445,23 @@ export default function Explore() {
                             <div className="win95-inset bg-gray-50 p-2 text-[10px] flex-1 mb-3 italic text-gray-700 leading-tight hover:bg-white hover:shadow-inner transition-all">
                                 {u.bio}
                             </div>
-                            <div className="text-[9px] text-blue-600 truncate hover:underline hover:text-blue-400">{u.portfolio_url}</div>
+                            <div className="text-[9px] text-blue-600 truncate hover:underline hover:text-blue-400 mb-2">{u.portfolio_url}</div>
+                            
+                            {/* Balance Display */}
+                            <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-auto">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 border border-green-300 hover:bg-green-200 transition-colors">
+                                  💰 ${(u.balance || 1000).toLocaleString()}
+                                </span>
+                              </div>
+                              {u.audio_url && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 border border-purple-300 hover:bg-purple-200 transition-colors cursor-pointer" title="Has recorded audio">
+                                    🎵 Audio
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                         </div>
                         ))}
                     </div>
@@ -452,6 +621,98 @@ export default function Explore() {
                             <TickerItem label="Commodity" />
                             <TickerItem label="Resource" />
                             <TickerItem label="Retire" />
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'artist' && (
+                    <div className="space-y-6 h-full flex flex-col">
+                        <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group">
+                            <h2 className="font-black text-2xl uppercase tracking-widest text-white italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
+                            <div className="flex items-center gap-2">
+                                {isRecording && (
+                                    <div className="flex items-center gap-2 recording-pulse">
+                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span className="text-xs font-bold">RECORDING</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex justify-center gap-4 flex-wrap">
+                            <button 
+                                onClick={isRecording ? stopRecording : startRecording}
+                                className={`win95-button px-6 py-3 font-black uppercase text-sm hover:scale-105 active:scale-95 transition-all ${isRecording ? 'bg-red-300 hover:bg-red-400' : 'bg-red-100 hover:bg-red-200'}`}
+                            >
+                                {isRecording ? '⏹ STOP RECORDING' : '⏺ START RECORDING'}
+                            </button>
+                            <button 
+                                onClick={playbackRecording}
+                                disabled={isPlaying || recordedNotes.length === 0}
+                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {isPlaying ? '▶ PLAYING...' : '▶ PLAYBACK'}
+                            </button>
+                            <button 
+                                onClick={downloadRecording}
+                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-blue-100 hover:bg-blue-200 hover:scale-105 active:scale-95 transition-all"
+                            >
+                                💾 SAVE TO COMPUTER
+                            </button>
+                        </div>
+
+                        {/* Keyboard instructions */}
+                        <div className="text-center text-xs text-gray-600 bg-yellow-50 p-2 win95-inset">
+                            <strong>KEYBOARD SHORTCUTS:</strong> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play
+                        </div>
+
+                        {/* Piano Keyboard */}
+                        <div className="flex-1 flex items-center justify-center">
+                            <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl">
+                                <div className="relative flex">
+                                    {/* White keys */}
+                                    {whiteKeys.map((note, idx) => (
+                                        <div
+                                            key={note}
+                                            onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
+                                            onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                                            onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                                            className={`piano-key-white w-12 h-40 mx-[1px] flex items-end justify-center pb-2 select-none ${activeKeys.has(note) ? 'active' : ''}`}
+                                        >
+                                            <span className="text-[10px] font-bold text-gray-500">{note}</span>
+                                        </div>
+                                    ))}
+                                    
+                                    {/* Black keys */}
+                                    {blackKeys.map(({ note, position }) => (
+                                        <div
+                                            key={note}
+                                            onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
+                                            onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                                            onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                                            className={`piano-key-black absolute w-8 h-24 select-none ${activeKeys.has(note) ? 'active' : ''}`}
+                                            style={{ left: `${position * 50 + 34}px` }}
+                                        >
+                                            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-bold text-gray-400">{note}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recording info */}
+                        <div className="win95-inset bg-gray-50 p-3 text-center">
+                            <div className="text-sm font-bold text-gray-700">
+                                {recordedNotes.length > 0 ? (
+                                    <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</>
+                                ) : (
+                                    <>🎵 Start recording and play some notes to create your masterpiece!</>
+                                )}
+                            </div>
+                            <div className="text-[10px] text-gray-500 mt-1">
+                                Your compositions will be tied to your profile and available as a shareable audio URL
+                            </div>
                         </div>
                     </div>
                 )}

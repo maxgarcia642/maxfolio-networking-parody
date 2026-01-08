@@ -7,11 +7,109 @@
   src: local('MS Sans Serif'), local('Microsoft Sans Serif'), local('Arial');
 }
 
+/* Frutiger Aero Animated Grass Background */
 body {
   margin: 0;
-  background-color: #008080; /* Classic Win95 Teal */
   color: black;
   font-family: 'MS Sans Serif', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(180deg, 
+    #87CEEB 0%,      /* Sky blue */
+    #98D8C8 30%,     /* Light mint */
+    #7FBC8C 50%,     /* Grass green */
+    #5A9A6B 70%,     /* Deeper grass */
+    #4A8A5B 100%     /* Ground green */
+  );
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Animated wind grass effect overlay */
+body::before {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(90, 154, 107, 0.3) 2px,
+      rgba(90, 154, 107, 0.3) 4px
+    ),
+    repeating-linear-gradient(
+      85deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(127, 188, 140, 0.2) 3px,
+      rgba(127, 188, 140, 0.2) 5px
+    );
+  animation: grassWave 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: 
+    repeating-linear-gradient(
+      95deg,
+      transparent 0px,
+      transparent 1px,
+      rgba(72, 138, 91, 0.25) 1px,
+      rgba(72, 138, 91, 0.25) 3px
+    );
+  animation: grassWave 2.5s ease-in-out infinite reverse;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes grassWave {
+  0%, 100% {
+    transform: skewX(-2deg) translateX(-5px);
+  }
+  50% {
+    transform: skewX(2deg) translateX(5px);
+  }
+}
+
+/* Floating cloud effect */
+.frutiger-clouds {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  filter: blur(20px);
+  animation: cloudFloat linear infinite;
+}
+
+@keyframes cloudFloat {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(calc(100vw + 100%)); }
+}
+
+/* Main content should be above the background */
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 .win95-button {
@@ -81,6 +179,58 @@ body {
     border: 2px solid #333;
 }
 
+/* Piano keyboard styles */
+.piano-key-white {
+  background: linear-gradient(180deg, #fff 0%, #f0f0f0 90%, #ddd 100%);
+  border: 1px solid #333;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.05s;
+}
+
+.piano-key-white:hover {
+  background: linear-gradient(180deg, #f8f8f8 0%, #e8e8e8 90%, #d0d0d0 100%);
+}
+
+.piano-key-white:active,
+.piano-key-white.active {
+  background: linear-gradient(180deg, #e0e0e0 0%, #d0d0d0 90%, #c0c0c0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateY(2px);
+}
+
+.piano-key-black {
+  background: linear-gradient(180deg, #333 0%, #1a1a1a 90%, #000 100%);
+  border: 1px solid #000;
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.05s;
+  z-index: 10;
+}
+
+.piano-key-black:hover {
+  background: linear-gradient(180deg, #404040 0%, #2a2a2a 90%, #111 100%);
+}
+
+.piano-key-black:active,
+.piano-key-black.active {
+  background: linear-gradient(180deg, #222 0%, #111 90%, #000 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2);
+  transform: translateY(2px);
+}
+
+/* Recording pulse animation */
+@keyframes recordPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.recording-pulse {
+  animation: recordPulse 1s ease-in-out infinite;
+}
+
 /* Custom scrollbar for that retro feel */
 ::-webkit-scrollbar {
   width: 16px;
@@ -106,4 +256,27 @@ body {
   border: 2px solid;
   border-color: #ffffff #808080 #808080 #ffffff;
   height: 16px;
+}
+
+/* Music credit styling */
+.music-credit {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.music-credit a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: underline;
+}
+
+.music-credit a:hover {
+  color: #fff;
 }
