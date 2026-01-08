@@ -1,7 +1,7 @@
 // Vercel compatible Edge/Serverless Route
 // This ensures the route is always dynamic and not cached
 export const dynamic = 'force-dynamic';
-import { query } from '../../lib/db';
+import { query } from '../../../lib/db';
 
 /**
  * POST handler to create a new profile.
