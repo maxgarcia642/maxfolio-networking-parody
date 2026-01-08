@@ -1,4 +1,4 @@
-[DEPLOYMENT_GUIDE.md](https://github.com/user-attachments/files/24398405/DEPLOYMENT_GUIDE.md)[# Maxfolio: Deployment & Technical Guide
+# Maxfolio: Deployment & Technical Guide
 
 ## Overview
 Maxfolio is a comedic, minimalist portfolio generator with a nostalgic Windows 95/Vista/Wii hybrid aesthetic. It is built using React (Vite/Next.js hybrid style) and PostgreSQL.
@@ -63,4 +63,3 @@ CREATE TABLE IF NOT EXISTS profiles (
 1. Ensure `.env` is in your `.gitignore`.
 2. All logic is self-contained in `src/` and `app/`.
 3. The `package.json` includes all necessary dependencies for a smooth build.
-Uploading DEPLOYMENT_GUIDE.md…]()
