@@ -30,6 +30,11 @@ body {
   padding: 5px 11px 3px 13px;
 }
 
+.win95-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .win95-window {
   background: #c0c0c0;
   border: 2px solid;
@@ -74,4 +79,31 @@ body {
 .market-graph {
     background: #000;
     border: 2px solid #333;
+}
+
+/* Custom scrollbar for that retro feel */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #c0c0c0;
+  border: 1px solid #808080;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d4;
+}
+
+::-webkit-scrollbar-button {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  height: 16px;
 }
