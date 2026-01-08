@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 
 export default function Home() {
@@ -28,6 +29,7 @@ export default function Home() {
     { title: "Create Account", icon: "🧙‍♂️", desc: "Profile Wizard", onClick: () => window.location.href = '/create' },
     { title: "Sign In", icon: "🔐", desc: "Mainframe Audit", onClick: () => window.location.href = '/explore?tab=signin' },
     { title: "Jobs", icon: "💼", desc: "Available Jobs", onClick: () => window.location.href = '/explore?tab=jobs' },
+    { title: "Matchmaker", icon: "❤️", desc: "The Void Loves You", onClick: () => window.location.href = '/explore?tab=matchmaker' },
     { title: "The Markets", icon: "💹", desc: "Market 5,000", onClick: () => window.location.href = '/explore?tab=economy' },
     { title: "Help", icon: "❓", desc: "External Docs", onClick: () => window.location.href = 'https://maxgarcia642.github.io/' },
   ];
@@ -44,14 +46,14 @@ export default function Home() {
         <div className="relative z-10 flex-1 flex flex-col">
             <div className="flex justify-between items-start mb-8">
                 <div>
-                    <div className="text-5xl font-black text-[#5a5e62] tracking-tighter italic drop-shadow-sm">
+                    <div className="text-5xl font-black text-[#5a5e62] tracking-tighter italic drop-shadow-sm hover:text-blue-500 hover:scale-105 transition-all cursor-default">
                         Maxfolio<span className="text-[#00a0e9]">Adventurer</span>
                     </div>
-                    <div className="text-sm font-bold text-gray-400 mt-1 ml-1 tracking-widest uppercase">
+                    <div className="text-sm font-bold text-gray-400 mt-1 ml-1 tracking-widest uppercase hover:text-gray-600 transition-colors cursor-default">
                         Welcome to the Void
                     </div>
                 </div>
-                <div className="bg-white/80 px-8 py-3 rounded-full text-xl font-black text-gray-500 border-2 border-white shadow-inner">
+                <div className="bg-white/80 px-8 py-3 rounded-full text-xl font-black text-gray-500 border-2 border-white shadow-inner hover:shadow-lg hover:text-blue-400 transition-all cursor-wait">
                     {time || '--:-- --'}
                 </div>
             </div>
@@ -68,16 +70,20 @@ export default function Home() {
                         `}
                     >
                         <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{ch.icon}</div>
-                        <div className="text-[11px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter">{ch.title}</div>
-                        <div className="text-[9px] text-gray-400 mt-1 font-bold">{ch.desc}</div>
+                        <div className="text-[11px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors">{ch.title}</div>
+                        <div className="text-[9px] text-gray-400 mt-1 font-bold group-hover:text-gray-600 transition-colors">{ch.desc}</div>
                         <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
                     </div>
                 ))}
             </div>
 
-            <div className="mt-8 flex justify-center">
-                 <div className="w-32 h-10 bg-white/60 rounded-full border-2 border-white/80 flex items-center justify-center shadow-sm">
-                    <div className="w-4 h-4 border-2 border-blue-400 rounded-sm"></div>
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 group cursor-pointer" onClick={() => window.location.reload()}>
+                 <div className="w-32 h-10 bg-cyan-100/60 rounded-full border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.4)] hover:shadow-[0_0_25px_rgba(34,211,238,0.6)] hover:bg-cyan-200/80 transition-all active:scale-95 group overflow-hidden relative">
+                    {/* Frutiger Aero Glossy Overlay */}
+                    <div className="absolute top-0 left-0 w-full h-[40%] bg-white/40 rounded-t-full"></div>
+                    <div className="w-4 h-4 bg-cyan-400 rounded-sm animate-pulse group-hover:scale-125 transition-transform flex items-center justify-center border border-cyan-300">
+                        <div className="w-2 h-2 bg-white rounded-xs opacity-80"></div>
+                    </div>
                  </div>
             </div>
         </div>
