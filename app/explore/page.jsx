@@ -1,14 +1,19 @@
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { generateJob } from '../../lib/generators';
+import { generateJob, generateMatch } from '../../lib/generators';
 
 export default function Explore() {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [generatedJobs, setGeneratedJobs] = useState([]);
+  const [matches, setMatches] = useState([]);
   const [investment, setInvestment] = useState(0);
   const [profit, setProfit] = useState(0);
   const [balance, setBalance] = useState(1000); 
+  const [isShrunk, setIsShrunk] = useState(false);
+  const [showSpamInbox, setShowSpamInbox] = useState(false);
+  const [spamMessages, setSpamMessages] = useState([]);
   const canvasRef = useRef(null);
   
   // Chaotic Timeline State
@@ -156,6 +161,34 @@ export default function Explore() {
     setGeneratedJobs(prev => [...prev, ...newJobs]);
   };
 
+  const handleGenerateMatches = () => {
+    const newMatches = Array.from({ length: 8 }, () => generateMatch());
+    setMatches(prev => [...newMatches, ...prev].slice(0, 50));
+    
+    // Generate some spam messages for the chat box
+    const messages = [
+        "Are you real? My source code says you are.",
+        "Hey... noticed you browsing the void.",
+        "Marry me in the data center? Please?",
+        "I have a single electron to share.",
+        "Exchanging encrypted haikus tonight?",
+        "Looking for someone to help me stare into the abyss.",
+        "I manifestoed you into my firewall.",
+        "My heart of silicon is beating for you.",
+        "Will you be my player 2?",
+        "Don't ignore my cache requests!"
+    ];
+    setSpamMessages(prev => [...Array.from({length: 3}, () => messages[Math.floor(Math.random()*messages.length)]), ...prev].slice(0, 100));
+  };
+
+  useEffect(() => {
+    if (activeTab === 'matchmaker') {
+        handleGenerateMatches();
+        const i = setInterval(handleGenerateMatches, 2000);
+        return () => clearInterval(i);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
       const jobTicker = setInterval(() => {
           setGeneratedJobs(prev => prev.map(j => {
@@ -170,67 +203,96 @@ export default function Explore() {
 
   return (
     <div className="p-8 flex flex-col items-center min-h-screen bg-[#008080]">
-      <div className="win95-window w-full max-w-6xl">
-        <div className="win95-title-bar">
+      {isShrunk && (
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center cursor-pointer group"
+            onClick={() => setIsShrunk(false)}
+        >
+            <div className="bg-white p-8 border-4 border-gray-400 text-center space-y-4 hover:border-blue-400 hover:scale-105 transition-all shadow-2xl">
+                <div className="text-4xl font-black text-red-600 animate-ping group-hover:text-red-400 transition-colors">WHAT HAVE YOU DONE</div>
+                <div className="text-sm font-bold text-gray-600 uppercase group-hover:text-blue-600 transition-colors">System Shrunk to Sub-Atomic Levels. Click to Re-Big.</div>
+            </div>
+        </div>
+      )}
+      <div className={`win95-window w-full max-w-6xl transition-all duration-500 ${isShrunk ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}>
+        <div className="win95-title-bar group">
           <div className="flex items-center gap-2">
             <span className="text-sm">🌐</span>
-            <span>Corporate-Network-Explorer.exe</span>
+            <span className="group-hover:text-blue-400 group-hover:scale-[1.01] transition-all">Corporate-Network-Explorer.exe</span>
           </div>
           <div className="flex gap-1">
-            <button className="win95-button py-0 px-1 text-xs">_</button>
-            <button className="win95-button py-0 px-1 text-xs font-bold">X</button>
+            <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100 transition-colors" onClick={() => setIsShrunk(true)}>_</button>
+            <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white transition-all" onClick={() => window.location.href = '/'}>X</button>
           </div>
         </div>
         
         <div className="bg-[#c0c0c0] p-1 border-b-2 border-gray-600 flex gap-1 flex-wrap">
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="win95-button text-[10px] px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all"
+          >
+            ← Main Menu
+          </button>
           {[
-              {id: 'signin', label: 'Sign In'},
-              {id: 'users', label: 'Active Users'},
-              {id: 'jobs', label: 'Available Jobs'},
-              {id: 'economy', label: 'Economy'}
+              {id: 'signin', label: 'Sign In', icon: '🔐'},
+              {id: 'users', label: 'Active Users', icon: '👥'},
+              {id: 'jobs', label: 'Available Jobs', icon: '💼'},
+              {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
+              {id: 'economy', label: 'Economy', icon: '💹'}
           ].map(tab => (
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)} 
-                className={`win95-button text-[10px] px-4 uppercase tracking-tighter ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}
+                className={`win95-button text-[10px] px-4 uppercase tracking-tighter hover:bg-gray-100 hover:scale-105 transition-all ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}
               >
-                {tab.label}
+                {tab.icon} {tab.label}
               </button>
           ))}
         </div>
 
         <div className="p-4 bg-[#c0c0c0] h-[750px] overflow-hidden flex flex-col">
-            <div className="bg-white flex-1 win95-inset overflow-y-auto p-6">
+            <div className="bg-white flex-1 win95-inset overflow-y-auto p-6 hover:border-blue-300 transition-colors">
                 {activeTab === 'signin' && (
                     <div className="max-w-sm mx-auto space-y-6 pt-20 text-center">
-                    <div className="text-6xl animate-bounce">🔐</div>
-                    <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest">Mainframe Audit</h2>
+                    <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
+                    <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
                     <div className="space-y-4 pt-4">
-                        <div className="win95-inset p-1"><input type="text" placeholder="IDENTITY" className="w-full p-2 text-sm outline-none font-mono" /></div>
-                        <div className="win95-inset p-1"><input type="password" placeholder="PASSCODE" className="w-full p-2 text-sm outline-none font-mono" /></div>
-                        <button className="win95-button w-full py-4 text-xl bg-blue-100">EXECUTE LOGIN</button>
+                        <div className="win95-inset p-1 hover:shadow-md transition-shadow"><input type="text" placeholder="IDENTITY" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
+                        <div className="win95-inset p-1 hover:shadow-md transition-shadow"><input type="password" placeholder="PASSCODE" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
+                        <button className="win95-button w-full py-4 text-xl bg-blue-100 hover:bg-blue-200 hover:scale-[1.02] active:scale-95 transition-all">EXECUTE LOGIN</button>
+                        <div className="flex items-center gap-2 pt-2">
+                            <div className="flex-1 h-[2px] bg-gray-300"></div>
+                            <span className="text-[10px] font-bold text-gray-400">OR</span>
+                            <div className="flex-1 h-[2px] bg-gray-300"></div>
+                        </div>
+                        <button 
+                            className="win95-button w-full py-2 text-sm bg-yellow-50 hover:bg-yellow-100 hover:scale-[1.02] active:scale-95 transition-all font-black uppercase italic"
+                            onClick={() => window.location.href = '/create'}
+                        >
+                            Create Account
+                        </button>
                     </div>
                     </div>
                 )}
 
                 {activeTab === 'users' && (
                     <div className="space-y-6">
-                    <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2">
-                        <h2 className="font-black text-3xl text-blue-900 uppercase italic">Corporate Network: Active Users</h2>
+                    <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
+                        <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 group-hover:translate-x-1 transition-all">Corporate Network: Active Users</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {users.map((u, i) => (
-                        <div key={i} className="win95-window p-4 flex flex-col hover:scale-105 transition-transform cursor-help">
+                                <div key={i} className="win95-window p-4 flex flex-col hover:scale-105 hover:shadow-xl hover:border-blue-400 transition-all cursor-help bg-white/80 backdrop-blur-sm group">
                             <div className="flex justify-between items-start mb-4">
-                                <div className="text-lg font-black text-blue-800 underline">@{u.username}</div>
-                                <div className="text-[8px] bg-red-100 border border-red-800 px-1 font-mono uppercase text-red-900">PW: {u.password}</div>
+                                <div className="text-lg font-black text-blue-800 underline hover:text-blue-500 transition-colors group-hover:animate-pulse">@{u.username}</div>
+                                <div className="text-[8px] bg-red-100 border border-red-800 px-1 font-mono uppercase text-red-900 hover:bg-red-200 transition-colors">PW: {u.password}</div>
                             </div>
-                            <div className="text-xs font-bold text-gray-800 mb-1 uppercase tracking-tighter">{u.job}</div>
-                            <div className="text-[9px] font-bold text-gray-600 mb-2">SKILLS: {u.skills}</div>
-                            <div className="win95-inset bg-gray-50 p-2 text-[10px] flex-1 mb-3 italic text-gray-700 leading-tight">
+                            <div className="text-xs font-bold text-gray-800 mb-1 uppercase tracking-tighter hover:bg-yellow-50 transition-colors inline-block group-hover:translate-x-1">{u.job}</div>
+                            <div className="text-[9px] font-bold text-gray-600 mb-2 hover:text-gray-900 transition-colors">SKILLS: {u.skills}</div>
+                            <div className="win95-inset bg-gray-50 p-2 text-[10px] flex-1 mb-3 italic text-gray-700 leading-tight hover:bg-white hover:shadow-inner transition-all">
                                 {u.bio}
                             </div>
-                            <div className="text-[9px] text-blue-600 truncate">{u.portfolio_url}</div>
+                            <div className="text-[9px] text-blue-600 truncate hover:underline hover:text-blue-400">{u.portfolio_url}</div>
                         </div>
                         ))}
                     </div>
@@ -239,8 +301,8 @@ export default function Explore() {
 
                 {activeTab === 'jobs' && (
                     <div className="space-y-8">
-                    <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg">
-                        <h2 className="font-black text-2xl uppercase tracking-widest text-white">Career-Void-Link (ZipVoid)</h2>
+                    <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg group">
+                        <h2 className="font-black text-2xl uppercase tracking-widest text-white group-hover:italic group-hover:scale-105 transition-all">Career-Void-Link (ZipVoid)</h2>
                     </div>
                     <div className="grid grid-cols-1 gap-6">
                     {generatedJobs.map((j) => (
@@ -274,10 +336,73 @@ export default function Explore() {
                     </div>
                 )}
 
+                {activeTab === 'matchmaker' && (
+                    <div className="space-y-8 relative overflow-hidden h-full">
+                        {/* Flying Hearts */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            {[...Array(20)].map((_, i) => (
+                                <div key={i} className="absolute animate-bounce" style={{
+                                    left: `${Math.random() * 100}%`,
+                                    top: `${Math.random() * 100}%`,
+                                    fontSize: `${Math.random() * 40 + 20}px`,
+                                    animationDuration: `${Math.random() * 3 + 1}s`,
+                                    opacity: 0.3
+                                }}>❤️</div>
+                            ))}
+                        </div>
+                        
+                        <div className="bg-pink-600 text-white p-4 flex justify-between items-center shadow-lg relative z-10 group">
+                            <h2 className="font-black text-2xl uppercase tracking-widest text-white italic group-hover:scale-105 transition-transform">MATCHMAKER: THE VOID LOVES YOU</h2>
+                            <div 
+                                className="text-xs bg-white text-pink-600 px-2 py-1 font-bold animate-pulse cursor-pointer hover:bg-pink-100 hover:scale-110 transition-all"
+                                onClick={() => setShowSpamInbox(!showSpamInbox)}
+                            >
+                                SPAM INBOX: {matches.length} UNREAD DESIRES
+                            </div>
+                        </div>
+
+                        {showSpamInbox && (
+                            <div className="absolute right-4 top-16 w-64 h-80 bg-white border-4 border-pink-400 z-50 flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
+                                <div className="bg-pink-600 text-white p-2 flex justify-between items-center">
+                                    <span className="text-[10px] font-bold uppercase">Spam-Chat-Bot.exe</span>
+                                    <button className="win95-button p-0 px-1 text-xs" onClick={() => setShowSpamInbox(false)}>X</button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-pink-50 font-mono text-[9px]">
+                                    {spamMessages.map((msg, i) => (
+                                        <div key={i} className="bg-white p-2 rounded shadow-sm border border-pink-200">
+                                            <span className="text-pink-600 font-bold">User_{Math.floor(Math.random()*999)}:</span> {msg}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-2 border-t border-pink-200 bg-white">
+                                    <input type="text" placeholder="REPLY TO LOVE..." className="w-full text-[9px] p-1 outline-none border border-pink-100" readOnly />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                            {matches.map((m) => (
+                                <div key={m.id} className="win95-window p-4 bg-white border-pink-400 hover:scale-105 transition-transform cursor-heart">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div className="text-2xl">{m.image}</div>
+                                        <div className="text-[10px] bg-pink-100 text-pink-800 px-2 font-bold uppercase">{m.type}</div>
+                                    </div>
+                                    <div className="text-lg font-black text-pink-700 underline">{m.name} ({m.species})</div>
+                                    <div className="text-xs font-bold text-gray-500 mb-2 italic">"{m.bio}"</div>
+                                    <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3">
+                                        <strong>DESIRE:</strong> {m.desire}
+                                    </div>
+                                    <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 font-bold text-xs" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}. This is now your identity.`)}>ACCEPT LOVE</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'economy' && (
                     <div className="flex h-full gap-4">
-                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono">
-                            <h3 className="font-bold border-b border-gray-400 mb-1">ASSETS</h3>
+                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-blue-50 transition-colors">
+                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-blue-600">ASSETS</h3>
                             <TickerItem label="PE" />
                             <TickerItem label="Bonds" />
                             <TickerItem label="REIT" />
@@ -288,37 +413,37 @@ export default function Explore() {
                             <TickerItem label="IRA" />
                         </div>
 
-                        <div className="flex-1 text-center space-y-4 flex flex-col">
-                            <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter">Money Shot Matrix v4.0</h2>
-                            <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px]">
+                        <div className="flex-1 text-center space-y-4 flex flex-col group">
+                            <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 group-hover:scale-105 transition-all">Money Shot Matrix v4.0</h2>
+                            <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
                                 <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
-                                <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1">
+                                <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1 group-hover:text-green-400 transition-colors">
                                     <span>T-{timeline.month}</span>
                                     <span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
                                     <span>T-{timeline.month}</span>
                                     <span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset">
+                            <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset hover:bg-gray-900 transition-colors">
                                 <div className="flex justify-around items-center font-black text-3xl">
-                                    <div className={profit >= 0 ? 'text-green-400' : 'text-red-500'}>
+                                    <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>
                                         Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}
                                     </div>
-                                    <div className="text-blue-500 underline decoration-double">INV: ${investment.toLocaleString()}</div>
+                                    <div className="text-blue-500 underline decoration-double hover:text-blue-400 transition-colors">INV: ${investment.toLocaleString()}</div>
                                 </div>
-                                <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 shadow-sm">
+                                <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 shadow-sm hover:text-yellow-300 transition-colors">
                                     BALANCE: ${balance.toLocaleString()}
                                 </div>
                             </div>
                             <div className="flex gap-4 justify-center">
-                                <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
-                                <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
+                                <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
+                                <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
                             </div>
-                            <p className="text-[10px] text-gray-500 italic mt-2">Unlimited Investment Protocol Active. Timeline Destabilized.</p>
+                            <p className="text-[10px] text-gray-500 italic mt-2 hover:text-gray-400 transition-colors cursor-help">Unlimited Investment Protocol Active. Timeline Destabilized.</p>
                         </div>
 
-                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono">
-                            <h3 className="font-bold border-b border-gray-400 mb-1">MARKETS 5,000</h3>
+                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
+                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600">MARKETS 5,000</h3>
                             <TickerItem label="S&P 0" />
                             <TickerItem label="Nasdaq-Void" />
                             <TickerItem label="Farmland" />
@@ -346,9 +471,9 @@ function TickerItem({ label }) {
         return () => clearInterval(i);
     }, []);
     return (
-        <div className="flex justify-between border-b border-gray-200 py-1">
-            <span>{label}:</span>
-            <span className={val > 5000 ? 'text-green-600' : 'text-red-600'}>${val.toFixed(0)}</span>
+        <div className="flex justify-between border-b border-gray-200 py-1 group/ticker hover:bg-white transition-colors cursor-crosshair">
+            <span className="group-hover/ticker:text-blue-600 transition-colors">{label}:</span>
+            <span className={`${val > 5000 ? 'text-green-600' : 'text-red-600'} group-hover/ticker:scale-110 transition-transform`}>${val.toFixed(0)}</span>
         </div>
     );
 }
