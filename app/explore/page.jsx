@@ -302,9 +302,10 @@ export default function Explore() {
       return;
     }
     
-    // Add trading P/L to current balance
+    // Add trading P/L to current balance (Previous Balance + P/L)
     const currentBalance = currentUser.balance || 0;
     const newBalance = currentBalance + tradingPL;
+    const plAmount = tradingPL;
     
     try {
       await fetch('/api/profiles', {
@@ -320,13 +321,18 @@ export default function Explore() {
       setTradingPot(0);
       setTradingPL(0);
       
-      // Refresh user data
+      // Immediately update local state for instant UI feedback
+      const updatedUser = { ...currentUser, balance: newBalance };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+      
+      // Also refresh from server to ensure sync
       await refreshCurrentUser();
       
-      if (tradingPL >= 0) {
-        alert(`💰 Cashed out! +$${tradingPL.toLocaleString()} added to your balance. New balance: $${newBalance.toLocaleString()}`);
+      if (plAmount >= 0) {
+        alert(`💰 Cashed out! +$${plAmount.toLocaleString()} added to your balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
       } else {
-        alert(`📉 Cashed out with loss. $${Math.abs(tradingPL).toLocaleString()} deducted from balance. New balance: $${newBalance.toLocaleString()}`);
+        alert(`📉 Cashed out with loss. $${Math.abs(plAmount).toLocaleString()} deducted from balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
       }
     } catch (e) {
       alert('Failed to cash out. Try again.');
@@ -347,9 +353,10 @@ export default function Explore() {
       return;
     }
     
-    // Add balance to net worth, reset balance to 0
+    // Add balance to net worth (Previous Net Worth + Balance), reset balance to 0
     const currentNetWorth = currentUser.net_worth || 0;
     const newNetWorth = currentNetWorth + currentBalance;
+    const movedAmount = currentBalance;
     
     try {
       await fetch('/api/profiles', {
@@ -362,10 +369,15 @@ export default function Explore() {
         })
       });
       
-      // Refresh user data
+      // Immediately update local state for instant UI feedback
+      const updatedUser = { ...currentUser, balance: 0, net_worth: newNetWorth };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+      
+      // Also refresh from server to ensure sync
       await refreshCurrentUser();
       
-      alert(`🏦 Moved $${currentBalance.toLocaleString()} to savings! Your net worth is now $${newNetWorth.toLocaleString()}`);
+      alert(`🏦 Moved $${movedAmount.toLocaleString()} to savings!\nBalance: $${movedAmount.toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
     } catch (e) {
       alert('Failed to move to savings. Try again.');
     }
@@ -705,12 +717,12 @@ export default function Explore() {
                         <div className="win95-inset p-3 bg-green-50 hover:bg-green-100 transition-colors cursor-default group">
                           <div className="text-[10px] text-gray-500 uppercase group-hover:text-green-700 transition-colors">💰 Net Worth</div>
                           <div className="text-2xl font-black text-green-600 group-hover:scale-105 transition-transform">${userNetWorth.toLocaleString()}</div>
-                          <div className="text-[9px] text-gray-400 group-hover:text-gray-600">Savings</div>
+                          <div className="text-[8px] text-gray-400 group-hover:text-gray-600 leading-tight">Savings (excluding your various Job Salaries, batteries not included)</div>
                         </div>
                         <div className="win95-inset p-3 bg-blue-50 hover:bg-blue-100 transition-colors cursor-default group">
                           <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-700 transition-colors">💵 Balance</div>
                           <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-blue-600' : 'text-red-600'} group-hover:scale-105 transition-transform`}>${userBalance.toLocaleString()}</div>
-                          <div className="text-[9px] text-gray-400 group-hover:text-gray-600">Trading Cash</div>
+                          <div className="text-[8px] text-gray-400 group-hover:text-gray-600 leading-tight">Liquid Capital – readily accessible funds for immediate market deployment</div>
                         </div>
                       </div>
                       
@@ -912,7 +924,9 @@ export default function Explore() {
                             <div className="win95-inset bg-green-50 p-3 hover:bg-green-100 transition-colors cursor-default group/item">
                               <div className="text-[10px] font-bold text-green-700 uppercase mb-2 group-hover/item:text-green-900 transition-colors">💰 Net Worth</div>
                               <div className="text-2xl font-black text-green-600 group-hover/item:scale-105 transition-transform">${(u.net_worth || 0).toLocaleString()}</div>
-                              <div className="text-[9px] text-gray-500 group-hover/item:text-gray-700 transition-colors">💵 Balance: ${(u.balance || 0).toLocaleString()}</div>
+                              <div className="text-[8px] text-gray-400 group-hover/item:text-gray-600 leading-tight mb-1">Savings (excluding your various Job Salaries, batteries not included)</div>
+                              <div className={`text-sm font-bold ${(u.balance || 0) >= 0 ? 'text-blue-600' : 'text-red-600'} group-hover/item:text-blue-700 transition-colors`}>💵 Balance: ${(u.balance || 0).toLocaleString()}</div>
+                              <div className="text-[8px] text-gray-400 group-hover/item:text-gray-600 leading-tight">Liquid Capital – readily accessible funds for immediate market deployment</div>
                             </div>
                             <div className="win95-inset bg-blue-50 p-3 hover:bg-blue-100 transition-colors group/item">
                               <div className="text-[10px] font-bold text-blue-700 uppercase mb-2 group-hover/item:text-blue-900 transition-colors">💼 Jobs ({(u.jobs || []).length})</div>
