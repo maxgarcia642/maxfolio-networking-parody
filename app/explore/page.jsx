@@ -433,6 +433,19 @@ export default function Explore() {
                     <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
                         <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 group-hover:translate-x-1 transition-all">Corporate Network: Active Users</h2>
                     </div>
+                    {loading && (
+                      <div className="text-center py-8">
+                        <div className="text-2xl animate-spin">⏳</div>
+                        <div className="text-sm font-bold text-gray-600 mt-2">Loading users from the mainframe...</div>
+                      </div>
+                    )}
+                    {!loading && users.length === 0 && (
+                      <div className="text-center py-8 win95-inset bg-yellow-50">
+                        <div className="text-4xl mb-2">📭</div>
+                        <div className="text-sm font-bold text-gray-600">No users found in the Corporate Network.</div>
+                        <div className="text-xs text-gray-500 mt-1">Be the first to <a href="/create" className="text-blue-600 underline hover:text-blue-400">create an account</a>!</div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {users.map((u, i) => (
                                 <div key={i} className="win95-window p-4 flex flex-col hover:scale-105 hover:shadow-xl hover:border-blue-400 transition-all cursor-help bg-white/80 backdrop-blur-sm group">
@@ -447,16 +460,16 @@ export default function Explore() {
                             </div>
                             <div className="text-[9px] text-blue-600 truncate hover:underline hover:text-blue-400 mb-2">{u.portfolio_url}</div>
                             
-                            {/* Balance Display */}
+                            {/* Balance and Audio Display */}
                             <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-auto">
                               <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 border border-green-300 hover:bg-green-200 transition-colors">
+                                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 border border-green-300 hover:bg-green-200 hover:scale-105 transition-all cursor-default">
                                   💰 ${(u.balance || 1000).toLocaleString()}
                                 </span>
                               </div>
                               {u.audio_url && (
                                 <div className="flex items-center gap-1">
-                                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 border border-purple-300 hover:bg-purple-200 transition-colors cursor-pointer" title="Has recorded audio">
+                                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 border border-purple-300 hover:bg-purple-200 hover:scale-105 transition-all cursor-pointer" title="Has recorded audio">
                                     🎵 Audio
                                   </span>
                                 </div>
@@ -494,14 +507,14 @@ export default function Explore() {
                                 </div>
                             </div>
                             <div className="md:w-48 flex flex-col justify-center">
-                                <button className={`win95-button w-full py-6 text-xl uppercase font-black ${j.expired ? 'bg-gray-200' : 'bg-green-100'}`} onClick={() => handleAcceptJob(j)}>
+                                <button className={`win95-button w-full py-6 text-xl uppercase font-black ${j.expired ? 'bg-gray-200' : 'bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95'} transition-all`} onClick={() => handleAcceptJob(j)}>
                                     {j.expired ? 'EXPIRED' : 'APPLY'}
                                 </button>
                             </div>
                         </div>
                     ))}
                     </div>
-                    <button className="win95-button w-full py-10 text-3xl font-black bg-yellow-100 hover:bg-yellow-200 uppercase italic tracking-widest border-4 border-double border-yellow-800" onClick={handleGenerateJobs}>REGENERATE CAREER PATHS</button>
+                    <button className="win95-button w-full py-10 text-3xl font-black bg-yellow-100 hover:bg-yellow-200 hover:scale-[1.02] active:scale-95 uppercase italic tracking-widest border-4 border-double border-yellow-800 transition-all" onClick={handleGenerateJobs}>REGENERATE CAREER PATHS</button>
                     </div>
                 )}
 
@@ -534,34 +547,34 @@ export default function Explore() {
                             <div className="absolute right-4 top-16 w-64 h-80 bg-white border-4 border-pink-400 z-50 flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
                                 <div className="bg-pink-600 text-white p-2 flex justify-between items-center">
                                     <span className="text-[10px] font-bold uppercase">Spam-Chat-Bot.exe</span>
-                                    <button className="win95-button p-0 px-1 text-xs" onClick={() => setShowSpamInbox(false)}>X</button>
+                                    <button className="win95-button p-0 px-1 text-xs hover:bg-red-200 transition-colors" onClick={() => setShowSpamInbox(false)}>X</button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-pink-50 font-mono text-[9px]">
                                     {spamMessages.map((msg, i) => (
-                                        <div key={i} className="bg-white p-2 rounded shadow-sm border border-pink-200">
+                                        <div key={i} className="bg-white p-2 rounded shadow-sm border border-pink-200 hover:bg-pink-50 hover:border-pink-400 transition-all">
                                             <span className="text-pink-600 font-bold">User_{Math.floor(Math.random()*999)}:</span> {msg}
                                         </div>
                                     ))}
                                 </div>
                                 <div className="p-2 border-t border-pink-200 bg-white">
-                                    <input type="text" placeholder="REPLY TO LOVE..." className="w-full text-[9px] p-1 outline-none border border-pink-100" readOnly />
+                                    <input type="text" placeholder="REPLY TO LOVE..." className="w-full text-[9px] p-1 outline-none border border-pink-100 focus:border-pink-400 transition-colors" readOnly />
                                 </div>
                             </div>
                         )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
                             {matches.map((m) => (
-                                <div key={m.id} className="win95-window p-4 bg-white border-pink-400 hover:scale-105 transition-transform cursor-heart">
+                                <div key={m.id} className="win95-window p-4 bg-white border-pink-400 hover:scale-105 hover:shadow-xl transition-all cursor-pointer">
                                     <div className="flex justify-between items-center mb-2">
-                                        <div className="text-2xl">{m.image}</div>
-                                        <div className="text-[10px] bg-pink-100 text-pink-800 px-2 font-bold uppercase">{m.type}</div>
+                                        <div className="text-2xl hover:scale-125 transition-transform">{m.image}</div>
+                                        <div className="text-[10px] bg-pink-100 text-pink-800 px-2 font-bold uppercase hover:bg-pink-200 transition-colors">{m.type}</div>
                                     </div>
-                                    <div className="text-lg font-black text-pink-700 underline">{m.name} ({m.species})</div>
-                                    <div className="text-xs font-bold text-gray-500 mb-2 italic">"{m.bio}"</div>
-                                    <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3">
+                                    <div className="text-lg font-black text-pink-700 underline hover:text-pink-500 transition-colors">{m.name} ({m.species})</div>
+                                    <div className="text-xs font-bold text-gray-500 mb-2 italic hover:text-gray-700 transition-colors">"{m.bio}"</div>
+                                    <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3 hover:bg-pink-100 transition-colors">
                                         <strong>DESIRE:</strong> {m.desire}
                                     </div>
-                                    <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 font-bold text-xs" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}. This is now your identity.`)}>ACCEPT LOVE</button>
+                                    <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 hover:scale-[1.02] active:scale-95 font-bold text-xs transition-all" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}. This is now your identity.`)}>ACCEPT LOVE</button>
                                 </div>
                             ))}
                         </div>
@@ -571,7 +584,7 @@ export default function Explore() {
                 {activeTab === 'economy' && (
                     <div className="flex h-full gap-4">
                         <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-blue-50 transition-colors">
-                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-blue-600">ASSETS</h3>
+                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-blue-600 transition-colors">ASSETS</h3>
                             <TickerItem label="PE" />
                             <TickerItem label="Bonds" />
                             <TickerItem label="REIT" />
@@ -595,12 +608,12 @@ export default function Explore() {
                             </div>
                             <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset hover:bg-gray-900 transition-colors">
                                 <div className="flex justify-around items-center font-black text-3xl">
-                                    <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>
+                                    <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform cursor-default`}>
                                         Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}
                                     </div>
-                                    <div className="text-blue-500 underline decoration-double hover:text-blue-400 transition-colors">INV: ${investment.toLocaleString()}</div>
+                                    <div className="text-blue-500 underline decoration-double hover:text-blue-400 transition-colors cursor-default">INV: ${investment.toLocaleString()}</div>
                                 </div>
-                                <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 shadow-sm hover:text-yellow-300 transition-colors">
+                                <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 shadow-sm hover:text-yellow-300 transition-colors cursor-default">
                                     BALANCE: ${balance.toLocaleString()}
                                 </div>
                             </div>
@@ -608,11 +621,11 @@ export default function Explore() {
                                 <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
                                 <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
                             </div>
-                            <p className="text-[10px] text-gray-500 italic mt-2 hover:text-gray-400 transition-colors cursor-help">Unlimited Investment Protocol Active. Timeline Destabilized.</p>
+                            <p className="text-[10px] text-gray-500 italic mt-2 hover:text-gray-400 hover:scale-105 transition-all cursor-help">Unlimited Investment Protocol Active. Timeline Destabilized.</p>
                         </div>
 
                         <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
-                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600">MARKETS 5,000</h3>
+                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600 transition-colors">MARKETS 5,000</h3>
                             <TickerItem label="S&P 0" />
                             <TickerItem label="Nasdaq-Void" />
                             <TickerItem label="Farmland" />
@@ -627,7 +640,7 @@ export default function Explore() {
 
                 {activeTab === 'artist' && (
                     <div className="space-y-6 h-full flex flex-col">
-                        <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group">
+                        <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group hover:bg-purple-700 transition-colors">
                             <h2 className="font-black text-2xl uppercase tracking-widest text-white italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
                             <div className="flex items-center gap-2">
                                 {isRecording && (
@@ -650,7 +663,7 @@ export default function Explore() {
                             <button 
                                 onClick={playbackRecording}
                                 disabled={isPlaying || recordedNotes.length === 0}
-                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 {isPlaying ? '▶ PLAYING...' : '▶ PLAYBACK'}
                             </button>
@@ -663,13 +676,14 @@ export default function Explore() {
                         </div>
 
                         {/* Keyboard instructions */}
-                        <div className="text-center text-xs text-gray-600 bg-yellow-50 p-2 win95-inset">
-                            <strong>KEYBOARD SHORTCUTS:</strong> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play
+                        <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
+                            <strong className="group-hover:text-blue-600 transition-colors">KEYBOARD SHORTCUTS:</strong> 
+                            <span className="group-hover:text-gray-800 transition-colors"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
                         </div>
 
                         {/* Piano Keyboard */}
                         <div className="flex-1 flex items-center justify-center">
-                            <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl">
+                            <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
                                 <div className="relative flex">
                                     {/* White keys */}
                                     {whiteKeys.map((note, idx) => (
@@ -680,7 +694,7 @@ export default function Explore() {
                                             onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
                                             className={`piano-key-white w-12 h-40 mx-[1px] flex items-end justify-center pb-2 select-none ${activeKeys.has(note) ? 'active' : ''}`}
                                         >
-                                            <span className="text-[10px] font-bold text-gray-500">{note}</span>
+                                            <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700 transition-colors">{note}</span>
                                         </div>
                                     ))}
                                     
@@ -702,15 +716,15 @@ export default function Explore() {
                         </div>
 
                         {/* Recording info */}
-                        <div className="win95-inset bg-gray-50 p-3 text-center">
-                            <div className="text-sm font-bold text-gray-700">
+                        <div className="win95-inset bg-gray-50 p-3 text-center hover:bg-blue-50 hover:shadow-md transition-all group">
+                            <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700 transition-colors">
                                 {recordedNotes.length > 0 ? (
                                     <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</>
                                 ) : (
                                     <>🎵 Start recording and play some notes to create your masterpiece!</>
                                 )}
                             </div>
-                            <div className="text-[10px] text-gray-500 mt-1">
+                            <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700 transition-colors">
                                 Your compositions will be tied to your profile and available as a shareable audio URL
                             </div>
                         </div>
@@ -732,8 +746,8 @@ function TickerItem({ label }) {
         return () => clearInterval(i);
     }, []);
     return (
-        <div className="flex justify-between border-b border-gray-200 py-1 group/ticker hover:bg-white transition-colors cursor-crosshair">
-            <span className="group-hover/ticker:text-blue-600 transition-colors">{label}:</span>
+        <div className="flex justify-between border-b border-gray-200 py-1 group/ticker hover:bg-white hover:px-1 transition-all cursor-crosshair">
+            <span className="group-hover/ticker:text-blue-600 group-hover/ticker:font-bold transition-all">{label}:</span>
             <span className={`${val > 5000 ? 'text-green-600' : 'text-red-600'} group-hover/ticker:scale-110 transition-transform`}>${val.toFixed(0)}</span>
         </div>
     );
@@ -754,12 +768,14 @@ function FooterTickers() {
   return (
     <div className="p-3 text-[11px] text-gray-800 flex justify-between bg-[#c0c0c0] font-mono border-t-2 border-gray-400">
       <div className="flex gap-8">
-        <span className="flex items-center gap-2 font-bold"><div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div> SYNC_ERR: {tasks}</span>
-        <span className="font-bold">RAM_USE: {memory}KB</span>
+        <span className="flex items-center gap-2 font-bold hover:text-red-600 hover:scale-105 transition-all cursor-help" title="Synchronization Errors">
+          <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div> SYNC_ERR: {tasks}
+        </span>
+        <span className="font-bold hover:text-blue-600 hover:scale-105 transition-all cursor-help" title="RAM Usage">RAM_USE: {memory}KB</span>
       </div>
       <div className="flex gap-4 italic font-bold">
-        <span className="text-blue-900 animate-pulse">META_MODE: 1.0.V</span>
-        <span>VISTA_PATCH_0.8</span>
+        <span className="text-blue-900 animate-pulse hover:text-purple-600 hover:scale-105 transition-all cursor-help" title="Meta Mode Active">META_MODE: 1.0.V</span>
+        <span className="hover:text-green-600 hover:scale-105 transition-all cursor-help" title="Vista Patch Version">VISTA_PATCH_0.8</span>
       </div>
     </div>
   );
