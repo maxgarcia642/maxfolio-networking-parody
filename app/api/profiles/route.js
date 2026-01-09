@@ -105,11 +105,11 @@ export async function GET() {
       console.log('Relationships table might not exist yet');
     }
     
-    // Get songs for all users
+    // Get songs for all users (including notes_data for counting)
     let songsMap = {};
     try {
       const songsRes = await query(
-        `SELECT username, song_name, duration_ms, created_at FROM songs ORDER BY created_at DESC`
+        `SELECT username, song_name, notes_data, duration_ms, created_at FROM songs ORDER BY created_at DESC`
       );
       songsRes.rows.forEach(song => {
         if (!songsMap[song.username]) songsMap[song.username] = [];
