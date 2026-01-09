@@ -55,11 +55,11 @@ export async function POST(request) {
       relationships = relRes.rows;
     } catch (e) { console.log('Could not fetch relationships'); }
     
-    // Get user's songs
+    // Get user's songs (including notes_data for counting)
     let songs = [];
     try {
       const songsRes = await query(
-        `SELECT song_name, duration_ms, created_at FROM songs WHERE username = $1 ORDER BY created_at DESC`,
+        `SELECT song_name, notes_data, duration_ms, created_at FROM songs WHERE username = $1 ORDER BY created_at DESC`,
         [username]
       );
       songs = songsRes.rows;

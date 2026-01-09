@@ -68,7 +68,6 @@ export default function Explore() {
   const [matches, setMatches] = useState([]);
   const [investment, setInvestment] = useState(0);
   const [profit, setProfit] = useState(0);
-  const [balance, setBalance] = useState(1000); 
   const [isShrunk, setIsShrunk] = useState(false);
   const [showSpamInbox, setShowSpamInbox] = useState(false);
   const [spamMessages, setSpamMessages] = useState([]);
@@ -90,13 +89,53 @@ export default function Explore() {
   const [recordingStartTime, setRecordingStartTime] = useState(null);
   const [activeKeys, setActiveKeys] = useState(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
-  const [totalNotesPlayed, setTotalNotesPlayed] = useState(0);
   const audioContextRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const destinationRef = useRef(null);
   
   const [timeline, setTimeline] = useState({ month: 'JAN', year: 2025 });
+
+  // Refresh current user data from database
+  const refreshCurrentUser = useCallback(async () => {
+    if (!currentUser?.username) return null;
+    
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          username: currentUser.username, 
+          password: currentUser.password 
+        })
+      });
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        const updatedUser = { ...data.user, password: currentUser.password };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+    } catch (e) {
+      console.log('Could not refresh user data');
+    }
+    return null;
+  }, [currentUser?.username, currentUser?.password]);
+
+  // Fetch all users for Active Users tab
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profiles');
+      const data = await res.json();
+      if (Array.isArray(data)) setUsers(data);
+    } catch (e) {
+      console.log('Could not fetch users');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Load current user from localStorage on mount
   useEffect(() => {
@@ -105,36 +144,11 @@ export default function Explore() {
       try {
         const user = JSON.parse(savedUser);
         setCurrentUser(user);
-        setBalance(user.balance || 1000);
       } catch (e) {
         localStorage.removeItem('maxfolio_user');
       }
     }
   }, []);
-
-  // Sync balance changes to user profile
-  const updateUserBalance = async (newBalance) => {
-    if (!currentUser) return;
-    
-    try {
-      await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser.username,
-          balance: newBalance,
-          net_worth: newBalance + investment + profit
-        })
-      });
-      
-      // Update local storage
-      const updatedUser = { ...currentUser, balance: newBalance, net_worth: newBalance + investment + profit };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
-    } catch (e) {
-      console.log('Could not sync balance');
-    }
-  };
 
   // Update current time every second
   useEffect(() => {
@@ -159,21 +173,19 @@ export default function Explore() {
     if (tab) setActiveTab(tab);
   }, []);
 
+  // Fetch users when switching to users tab
   useEffect(() => {
     if (activeTab === 'users') {
-      setLoading(true);
-      fetch('/api/profiles')
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setUsers(data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      fetchUsers();
     }
     if (activeTab === 'jobs' && generatedJobs.length === 0) {
       handleGenerateJobs();
     }
-  }, [activeTab]);
+    // Refresh current user when switching to profile tab
+    if (activeTab === 'signin' && currentUser) {
+      refreshCurrentUser();
+    }
+  }, [activeTab, fetchUsers, refreshCurrentUser]);
 
   // Login handler
   const handleLogin = async () => {
@@ -195,9 +207,9 @@ export default function Explore() {
       const data = await res.json();
       
       if (data.success && data.user) {
-        setCurrentUser(data.user);
-        setBalance(data.user.balance || 1000);
-        localStorage.setItem('maxfolio_user', JSON.stringify(data.user));
+        const userWithPassword = { ...data.user, password: loginPassword };
+        setCurrentUser(userWithPassword);
+        localStorage.setItem('maxfolio_user', JSON.stringify(userWithPassword));
         setLoginUsername('');
         setLoginPassword('');
         setLoginError('');
@@ -215,7 +227,6 @@ export default function Explore() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUser(null);
-    setBalance(1000);
     setInvestment(0);
     setProfit(0);
     localStorage.removeItem('maxfolio_user');
@@ -280,23 +291,60 @@ export default function Explore() {
   }, [activeTab]);
 
   // Handle investing - syncs to profile
-  const handleInvest = () => {
-    const newBalance = balance - 1000000;
-    setInvestment(i => i + 1000000);
-    setBalance(newBalance);
-    if (currentUser) {
-      updateUserBalance(newBalance);
+  const handleInvest = async () => {
+    if (!currentUser) {
+      alert('Sign in to use the economy!');
+      setActiveTab('signin');
+      return;
+    }
+    
+    const currentBalance = currentUser.balance || 1000;
+    const newBalance = currentBalance - 1000000;
+    const newInvestment = investment + 1000000;
+    setInvestment(newInvestment);
+    
+    try {
+      await fetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          balance: newBalance,
+          net_worth: newBalance + newInvestment + profit
+        })
+      });
+      await refreshCurrentUser();
+    } catch (e) {
+      console.log('Could not sync investment');
     }
   };
 
   // Handle cash out - syncs to profile
-  const handleCashOut = () => {
-    const newBalance = balance + profit + investment;
-    setBalance(newBalance);
-    setInvestment(0);
-    setProfit(0);
-    if (currentUser) {
-      updateUserBalance(newBalance);
+  const handleCashOut = async () => {
+    if (!currentUser) {
+      alert('Sign in to use the economy!');
+      setActiveTab('signin');
+      return;
+    }
+    
+    const currentBalance = currentUser.balance || 1000;
+    const newBalance = currentBalance + profit + investment;
+    
+    try {
+      await fetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          balance: newBalance,
+          net_worth: newBalance
+        })
+      });
+      setInvestment(0);
+      setProfit(0);
+      await refreshCurrentUser();
+    } catch (e) {
+      console.log('Could not sync cash out');
     }
   };
 
@@ -331,9 +379,6 @@ export default function Explore() {
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
     
-    // Track total notes played
-    setTotalNotesPlayed(prev => prev + 1);
-    
     if (isRecording && recordingStartTime) {
       setRecordedNotes(prev => [...prev, { note, timestamp: Date.now() - recordingStartTime }]);
     }
@@ -355,15 +400,49 @@ export default function Explore() {
     if (mediaRecorderRef.current && isRecording) { mediaRecorderRef.current.stop(); setIsRecording(false); }
   };
 
-  const downloadRecording = () => {
-    if (audioChunksRef.current.length === 0) { alert('No audio recorded yet!'); return; }
-    const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `maxfolio-composition-${Date.now()}.webm`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Save recording to database AND download
+  const saveAndDownloadRecording = async () => {
+    if (audioChunksRef.current.length === 0 && recordedNotes.length === 0) { 
+      alert('No audio recorded yet!'); 
+      return; 
+    }
+    
+    // Save to database if logged in
+    if (currentUser && recordedNotes.length > 0) {
+      try {
+        const duration = recordedNotes.length > 0 
+          ? recordedNotes[recordedNotes.length - 1].timestamp 
+          : 0;
+        
+        await fetch('/api/songs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: currentUser.username,
+            song_name: `Composition ${new Date().toLocaleString()}`,
+            notes_data: JSON.stringify(recordedNotes),
+            duration_ms: duration
+          })
+        });
+        
+        // Refresh user to update song count
+        await refreshCurrentUser();
+        alert(`🎵 Saved ${recordedNotes.length} notes to your profile!`);
+      } catch (e) {
+        console.log('Could not save to database');
+      }
+    }
+    
+    // Download file
+    if (audioChunksRef.current.length > 0) {
+      const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `maxfolio-composition-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const playbackRecording = async () => {
@@ -398,7 +477,10 @@ export default function Explore() {
           pay: job.pay
         })
       });
-      alert(`HIRED! You are now a ${job.title} at ${job.company}. Your net worth has been updated.`);
+      
+      // Refresh user data to show new job
+      await refreshCurrentUser();
+      alert(`HIRED! You are now a ${job.title} at ${job.company}. Check your profile for updated stats!`);
     } catch (e) {
       alert(`HIRED! You are now a ${job.title} at ${job.company}.`);
     }
@@ -422,7 +504,10 @@ export default function Explore() {
           relationship_type: match.type
         })
       });
-      alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}. This is now your identity.`);
+      
+      // Refresh user data to show new relationship
+      await refreshCurrentUser();
+      alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}. Check your profile!`);
     } catch (e) {
       alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}.`);
     }
@@ -485,6 +570,19 @@ export default function Explore() {
     return `${seconds}s`;
   };
 
+  // Calculate total notes from songs
+  const getTotalNotes = (songs) => {
+    if (!songs || songs.length === 0) return 0;
+    return songs.reduce((acc, song) => {
+      try {
+        const notes = JSON.parse(song.notes_data || '[]');
+        return acc + (Array.isArray(notes) ? notes.length : 0);
+      } catch {
+        return acc;
+      }
+    }, 0);
+  };
+
   const whiteKeys = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5', 'C6'];
   const blackKeys = [
     { note: 'C#4', position: 0 }, { note: 'D#4', position: 1 },
@@ -492,6 +590,14 @@ export default function Explore() {
     { note: 'C#5', position: 7 }, { note: 'D#5', position: 8 },
     { note: 'F#5', position: 10 }, { note: 'G#5', position: 11 }, { note: 'A#5', position: 12 }
   ];
+
+  // Get display values for current user (from refreshed data)
+  const userBalance = currentUser?.balance ?? 1000;
+  const userNetWorth = currentUser?.net_worth ?? userBalance;
+  const userJobs = currentUser?.jobs || [];
+  const userRelationships = currentUser?.relationships || [];
+  const userSongs = currentUser?.songs || [];
+  const userTotalNotes = getTotalNotes(userSongs);
 
   return (
     <div className="p-8 flex flex-col items-center min-h-screen">
@@ -557,17 +663,17 @@ export default function Explore() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="win95-inset p-3 bg-green-50">
                           <div className="text-[10px] text-gray-500 uppercase">Net Worth</div>
-                          <div className="text-2xl font-black text-green-600">${(balance + investment + profit).toLocaleString()}</div>
+                          <div className="text-2xl font-black text-green-600">${userNetWorth.toLocaleString()}</div>
                         </div>
                         <div className="win95-inset p-3 bg-blue-50">
                           <div className="text-[10px] text-gray-500 uppercase">Balance</div>
-                          <div className="text-2xl font-black text-blue-600">${balance.toLocaleString()}</div>
+                          <div className="text-2xl font-black text-blue-600">${userBalance.toLocaleString()}</div>
                         </div>
                       </div>
                       
                       <div className="win95-inset p-3">
                         <div className="text-[10px] text-gray-500 uppercase">Member Since</div>
-                        <div className="text-lg font-bold">{formatDuration(currentUser.member_since)}</div>
+                        <div className="text-lg font-bold">{formatDuration(currentUser.member_since || currentUser.created_at)}</div>
                       </div>
                       
                       <div className="win95-inset p-3">
@@ -582,18 +688,64 @@ export default function Explore() {
                       
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="win95-inset p-2 bg-blue-50">
-                          <div className="text-2xl font-black text-blue-600">{(currentUser.jobs || []).length}</div>
+                          <div className="text-2xl font-black text-blue-600">{userJobs.length}</div>
                           <div className="text-[9px] uppercase">Jobs</div>
                         </div>
                         <div className="win95-inset p-2 bg-pink-50">
-                          <div className="text-2xl font-black text-pink-600">{(currentUser.relationships || []).length}</div>
+                          <div className="text-2xl font-black text-pink-600">{userRelationships.length}</div>
                           <div className="text-[9px] uppercase">Relationships</div>
                         </div>
                         <div className="win95-inset p-2 bg-purple-50">
-                          <div className="text-2xl font-black text-purple-600">{totalNotesPlayed}</div>
-                          <div className="text-[9px] uppercase">Notes Played</div>
+                          <div className="text-2xl font-black text-purple-600">{userTotalNotes}</div>
+                          <div className="text-[9px] uppercase">Notes Recorded</div>
                         </div>
                       </div>
+                      
+                      {/* Show jobs list */}
+                      {userJobs.length > 0 && (
+                        <div className="win95-inset p-3 bg-blue-50">
+                          <div className="text-[10px] text-blue-700 uppercase mb-2 font-bold">💼 Your Jobs</div>
+                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                            {userJobs.map((job, j) => (
+                              <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
+                                <span className="font-bold">{job.job_title}</span> @ {job.company}
+                                <span className="text-green-600 ml-1">{job.pay}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show relationships list */}
+                      {userRelationships.length > 0 && (
+                        <div className="win95-inset p-3 bg-pink-50">
+                          <div className="text-[10px] text-pink-700 uppercase mb-2 font-bold">❤️ Your Relationships</div>
+                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                            {userRelationships.map((rel, r) => (
+                              <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
+                                💕 {rel.partner_name} ({rel.partner_species}) - {rel.relationship_type}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show songs list */}
+                      {userSongs.length > 0 && (
+                        <div className="win95-inset p-3 bg-purple-50">
+                          <div className="text-[10px] text-purple-700 uppercase mb-2 font-bold">🎵 Your Compositions</div>
+                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                            {userSongs.map((song, s) => {
+                              const noteCount = getTotalNotes([song]);
+                              return (
+                                <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200">
+                                  🎹 {song.song_name} - {noteCount} notes
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <button className="win95-button w-full py-3 bg-red-100 hover:bg-red-200 font-bold" onClick={handleLogout}>
@@ -665,6 +817,7 @@ export default function Explore() {
               <div className="space-y-6">
                 <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
                   <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 transition-all">Corporate Network: Active Users</h2>
+                  <button onClick={fetchUsers} className="win95-button text-[10px] px-4 py-1 hover:bg-blue-100">🔄 Refresh</button>
                 </div>
                 {loading && (
                   <div className="text-center py-8"><div className="text-2xl animate-spin">⏳</div><div className="text-sm font-bold text-gray-600 mt-2">Loading users...</div></div>
@@ -678,99 +831,92 @@ export default function Explore() {
                 )}
                 
                 <div className="space-y-6">
-                  {users.map((u, i) => (
-                    <div key={i} className="win95-window p-0 hover:shadow-2xl hover:border-blue-400 transition-all bg-white/90 backdrop-blur-sm group">
-                      <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-3 flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="text-3xl">👤</div>
-                          <div>
-                            <div className="text-xl font-black group-hover:text-yellow-300 transition-colors">@{u.username}</div>
-                            <div className="text-[10px] opacity-80">{u.job || 'Unemployed Void Walker'}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <button 
-                            className="text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/40 transition-colors cursor-pointer"
-                            onClick={() => handleQuickLogin(u.username, u.password)}
-                            title="Click to sign in as this user"
-                          >
-                            🔑 PW: {u.password}
-                          </button>
-                          <div className="text-[9px] mt-1 opacity-70">⏱️ Member for: {formatDuration(u.member_since)}</div>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-                        <div className="space-y-3">
-                          <div className="win95-inset bg-gray-50 p-3">
-                            <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">📝 Bio</div>
-                            <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided.'}</div>
-                          </div>
-                          <div className="win95-inset bg-gray-50 p-3">
-                            <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">🎯 Skills</div>
-                            <div className="text-xs text-gray-700">{u.skills || 'None listed'}</div>
-                          </div>
-                          <div className="text-[9px] text-blue-600 truncate hover:underline">{u.portfolio_url}</div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="win95-inset bg-green-50 p-3">
-                            <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
-                            <div className="text-2xl font-black text-green-600">${(u.net_worth || u.balance || 1000).toLocaleString()}</div>
-                            <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
-                          </div>
-                          <div className="win95-inset bg-blue-50 p-3">
-                            <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs ({(u.jobs || []).length})</div>
-                            {(u.jobs || []).length === 0 ? (
-                              <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
-                            ) : (
-                              <div className="space-y-1 max-h-24 overflow-y-auto">
-                                {(u.jobs || []).slice(0, 3).map((job, j) => (
-                                  <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
-                                    <span className="font-bold">{job.job_title}</span> @ {job.company}
-                                    <span className="text-green-600 ml-1">{job.pay}</span>
-                                  </div>
-                                ))}
-                                {(u.jobs || []).length > 3 && <div className="text-[9px] text-gray-400">+{u.jobs.length - 3} more...</div>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div className="win95-inset bg-pink-50 p-3">
-                            <div className="text-[10px] font-bold text-pink-700 uppercase mb-2">❤️ Relationships ({(u.relationships || []).length})</div>
-                            {(u.relationships || []).length === 0 ? (
-                              <div className="text-[10px] text-gray-500 italic">Forever alone in the void</div>
-                            ) : (
-                              <div className="space-y-1 max-h-20 overflow-y-auto">
-                                {(u.relationships || []).slice(0, 3).map((rel, r) => (
-                                  <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
-                                    💕 {rel.partner_name} - {rel.relationship_type}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="win95-inset bg-purple-50 p-3">
-                            <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Notes Recorded</div>
-                            <div className="text-2xl font-black text-purple-600">
-                              {(u.songs || []).reduce((acc, song) => {
-                                // Try to parse notes_data if it exists
-                                try {
-                                  const notes = JSON.parse(song.notes_data || '[]');
-                                  return acc + (Array.isArray(notes) ? notes.length : 0);
-                                } catch {
-                                  return acc;
-                                }
-                              }, 0) || (u.songs || []).length * 10}
+                  {users.map((u, i) => {
+                    const uTotalNotes = getTotalNotes(u.songs);
+                    return (
+                      <div key={i} className="win95-window p-0 hover:shadow-2xl hover:border-blue-400 transition-all bg-white/90 backdrop-blur-sm group">
+                        <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-3 flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <div className="text-3xl">👤</div>
+                            <div>
+                              <div className="text-xl font-black group-hover:text-yellow-300 transition-colors">@{u.username}</div>
+                              <div className="text-[10px] opacity-80">{u.job || 'Unemployed Void Walker'}</div>
                             </div>
-                            <div className="text-[9px] text-gray-500">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
+                          </div>
+                          <div className="text-right">
+                            <button 
+                              className="text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/40 transition-colors cursor-pointer"
+                              onClick={() => handleQuickLogin(u.username, u.password)}
+                              title="Click to sign in as this user"
+                            >
+                              🔑 PW: {u.password}
+                            </button>
+                            <div className="text-[9px] mt-1 opacity-70">⏱️ Member for: {formatDuration(u.member_since || u.created_at)}</div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+                          <div className="space-y-3">
+                            <div className="win95-inset bg-gray-50 p-3">
+                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">📝 Bio</div>
+                              <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided.'}</div>
+                            </div>
+                            <div className="win95-inset bg-gray-50 p-3">
+                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">🎯 Skills</div>
+                              <div className="text-xs text-gray-700">{u.skills || 'None listed'}</div>
+                            </div>
+                            <div className="text-[9px] text-blue-600 truncate hover:underline">{u.portfolio_url}</div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="win95-inset bg-green-50 p-3">
+                              <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
+                              <div className="text-2xl font-black text-green-600">${(u.net_worth || u.balance || 1000).toLocaleString()}</div>
+                              <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
+                            </div>
+                            <div className="win95-inset bg-blue-50 p-3">
+                              <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs ({(u.jobs || []).length})</div>
+                              {(u.jobs || []).length === 0 ? (
+                                <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
+                              ) : (
+                                <div className="space-y-1 max-h-24 overflow-y-auto">
+                                  {(u.jobs || []).slice(0, 3).map((job, j) => (
+                                    <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
+                                      <span className="font-bold">{job.job_title}</span> @ {job.company}
+                                      <span className="text-green-600 ml-1">{job.pay}</span>
+                                    </div>
+                                  ))}
+                                  {(u.jobs || []).length > 3 && <div className="text-[9px] text-gray-400">+{u.jobs.length - 3} more...</div>}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="win95-inset bg-pink-50 p-3">
+                              <div className="text-[10px] font-bold text-pink-700 uppercase mb-2">❤️ Relationships ({(u.relationships || []).length})</div>
+                              {(u.relationships || []).length === 0 ? (
+                                <div className="text-[10px] text-gray-500 italic">Forever alone in the void</div>
+                              ) : (
+                                <div className="space-y-1 max-h-20 overflow-y-auto">
+                                  {(u.relationships || []).slice(0, 3).map((rel, r) => (
+                                    <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
+                                      💕 {rel.partner_name} - {rel.relationship_type}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="win95-inset bg-purple-50 p-3">
+                              <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Notes Recorded</div>
+                              <div className="text-2xl font-black text-purple-600">{uTotalNotes}</div>
+                              <div className="text-[9px] text-gray-500">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -907,7 +1053,11 @@ export default function Explore() {
                 </div>
                 <div className="flex-1 text-center space-y-4 flex flex-col group">
                   <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">Money Shot Matrix v4.0</h2>
-                  {currentUser && <div className="text-xs text-gray-600">Trading as @{currentUser.username} - Changes sync to your profile!</div>}
+                  {currentUser ? (
+                    <div className="text-xs text-gray-600">Trading as <strong>@{currentUser.username}</strong> - Changes sync to your profile!</div>
+                  ) : (
+                    <div className="text-xs text-red-600 font-bold">⚠️ Sign in to save your trading progress!</div>
+                  )}
                   <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
                     <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
                     <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1">
@@ -919,8 +1069,8 @@ export default function Explore() {
                       <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}</div>
                       <div className="text-blue-500 underline hover:text-blue-400">INV: ${investment.toLocaleString()}</div>
                     </div>
-                    <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 hover:text-yellow-300">BALANCE: ${balance.toLocaleString()}</div>
-                    {currentUser && <div className="text-green-300 text-lg">NET WORTH: ${(balance + investment + profit).toLocaleString()}</div>}
+                    <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 hover:text-yellow-300">BALANCE: ${(currentUser?.balance || 1000).toLocaleString()}</div>
+                    {currentUser && <div className="text-green-300 text-lg">NET WORTH: ${((currentUser?.balance || 1000) + investment + profit).toLocaleString()}</div>}
                   </div>
                   <div className="flex gap-4 justify-center">
                     <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleInvest}>INF_INVEST +$1M</button>
@@ -940,7 +1090,11 @@ export default function Explore() {
                 <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group hover:bg-purple-700 transition-colors">
                   <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
                   <div className="flex items-center gap-4">
-                    {currentUser && <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username}</span>}
+                    {currentUser ? (
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username}</span>
+                    ) : (
+                      <span className="text-xs bg-red-500/50 px-2 py-1 rounded">Sign in to save compositions!</span>
+                    )}
                     {isRecording && <div className="flex items-center gap-2 recording-pulse"><div className="w-3 h-3 bg-red-500 rounded-full"></div><span className="text-xs font-bold">RECORDING</span></div>}
                   </div>
                 </div>
@@ -951,12 +1105,14 @@ export default function Explore() {
                   <button onClick={playbackRecording} disabled={isPlaying || recordedNotes.length === 0} className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
                     {isPlaying ? '▶ PLAYING...' : '▶ PLAYBACK'}
                   </button>
-                  <button onClick={downloadRecording} className="win95-button px-6 py-3 font-black uppercase text-sm bg-blue-100 hover:bg-blue-200 hover:scale-105 active:scale-95 transition-all">💾 SAVE TO COMPUTER</button>
+                  <button onClick={saveAndDownloadRecording} className="win95-button px-6 py-3 font-black uppercase text-sm bg-blue-100 hover:bg-blue-200 hover:scale-105 active:scale-95 transition-all">
+                    💾 {currentUser ? 'SAVE & DOWNLOAD' : 'DOWNLOAD'}
+                  </button>
                 </div>
                 <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
                   <strong className="group-hover:text-blue-600">KEYBOARD SHORTCUTS:</strong> 
                   <span className="group-hover:text-gray-800"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
-                  <div className="mt-1 text-purple-600 font-bold">🎵 Total Notes Played This Session: {totalNotesPlayed}</div>
+                  <div className="mt-1 text-purple-600 font-bold">🎵 Notes in this recording: {recordedNotes.length} {currentUser && `| Total saved: ${userTotalNotes}`}</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
@@ -985,7 +1141,9 @@ export default function Explore() {
                   <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700">
                     {recordedNotes.length > 0 ? <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</> : <>🎵 Start recording and play some notes to create your masterpiece!</>}
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700">Your compositions will be tied to your profile and available as a shareable audio URL</div>
+                  <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700">
+                    {currentUser ? 'Your compositions will be saved to your profile and visible in Active Users!' : 'Sign in to save compositions to your profile!'}
+                  </div>
                 </div>
               </div>
             )}
