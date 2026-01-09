@@ -308,7 +308,7 @@ export default function Explore() {
     const plAmount = tradingPL;
     
     try {
-      await fetch('/api/profiles', {
+      const response = await fetch('/api/profiles', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -317,17 +317,16 @@ export default function Explore() {
         })
       });
       
+      if (!response.ok) throw new Error('Failed to update');
+      
       // Reset trading session
       setTradingPot(0);
       setTradingPL(0);
       
-      // Immediately update local state for instant UI feedback
+      // Update local state with new balance (don't refresh from server - we know the correct value)
       const updatedUser = { ...currentUser, balance: newBalance };
       setCurrentUser(updatedUser);
       localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
-      
-      // Also refresh from server to ensure sync
-      await refreshCurrentUser();
       
       if (plAmount >= 0) {
         alert(`💰 Cashed out! +$${plAmount.toLocaleString()} added to your balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
@@ -354,12 +353,13 @@ export default function Explore() {
     }
     
     // Add balance to net worth (Previous Net Worth + Balance), reset balance to 0
+    // Works for both positive and negative balances
     const currentNetWorth = currentUser.net_worth || 0;
     const newNetWorth = currentNetWorth + currentBalance;
     const movedAmount = currentBalance;
     
     try {
-      await fetch('/api/profiles', {
+      const response = await fetch('/api/profiles', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -369,15 +369,19 @@ export default function Explore() {
         })
       });
       
-      // Immediately update local state for instant UI feedback
+      if (!response.ok) throw new Error('Failed to update');
+      
+      // Update local state (don't refresh from server - we know the correct values)
       const updatedUser = { ...currentUser, balance: 0, net_worth: newNetWorth };
       setCurrentUser(updatedUser);
       localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
       
-      // Also refresh from server to ensure sync
-      await refreshCurrentUser();
-      
-      alert(`🏦 Moved $${movedAmount.toLocaleString()} to savings!\nBalance: $${movedAmount.toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
+      // Build appropriate message based on positive/negative balance
+      if (movedAmount >= 0) {
+        alert(`🏦 Moved $${movedAmount.toLocaleString()} to savings!\n\nBalance: $${movedAmount.toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
+      } else {
+        alert(`🏦 Moved debt of $${Math.abs(movedAmount).toLocaleString()} to savings (subtracted from net worth).\n\nBalance: -$${Math.abs(movedAmount).toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
+      }
     } catch (e) {
       alert('Failed to move to savings. Try again.');
     }
