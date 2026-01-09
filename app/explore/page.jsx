@@ -66,8 +66,11 @@ export default function Explore() {
   const [loading, setLoading] = useState(false);
   const [generatedJobs, setGeneratedJobs] = useState([]);
   const [matches, setMatches] = useState([]);
-  const [investment, setInvestment] = useState(0);
-  const [profit, setProfit] = useState(0);
+  
+  // Economy state - local trading session
+  const [tradingBalance, setTradingBalance] = useState(0); // Current profit/loss in trading
+  const [invested, setInvested] = useState(0); // Amount put into trading
+  
   const [isShrunk, setIsShrunk] = useState(false);
   const [showSpamInbox, setShowSpamInbox] = useState(false);
   const [spamMessages, setSpamMessages] = useState([]);
@@ -173,7 +176,7 @@ export default function Explore() {
     if (tab) setActiveTab(tab);
   }, []);
 
-  // Fetch users when switching to users tab
+  // Fetch users when switching to users tab, refresh user on profile tab
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
@@ -181,8 +184,10 @@ export default function Explore() {
     if (activeTab === 'jobs' && generatedJobs.length === 0) {
       handleGenerateJobs();
     }
-    // Refresh current user when switching to profile tab
     if (activeTab === 'signin' && currentUser) {
+      refreshCurrentUser();
+    }
+    if (activeTab === 'economy' && currentUser) {
       refreshCurrentUser();
     }
   }, [activeTab, fetchUsers, refreshCurrentUser]);
@@ -213,6 +218,9 @@ export default function Explore() {
         setLoginUsername('');
         setLoginPassword('');
         setLoginError('');
+        // Reset trading state
+        setTradingBalance(0);
+        setInvested(0);
         alert(`Welcome back, @${data.user.username}! You are now logged into the mainframe.`);
       } else {
         setLoginError(data.error || 'Login failed');
@@ -227,8 +235,8 @@ export default function Explore() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUser(null);
-    setInvestment(0);
-    setProfit(0);
+    setTradingBalance(0);
+    setInvested(0);
     localStorage.removeItem('maxfolio_user');
     alert('Logged out. Your consciousness has been disconnected from the mainframe.');
   };
@@ -280,55 +288,47 @@ export default function Explore() {
         if (x > canvas.width) x = canvas.width; if (x < 0) x = canvas.width;
         points.push({x, y, color});
         if (points.length > 100) points.shift();
+        
+        // Update trading balance based on market
         const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
-        setProfit(p => p + delta);
+        if (invested > 0) {
+          setTradingBalance(prev => prev + delta);
+        }
+        
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
         setTimeline({ month: months[Math.floor(Math.random() * months.length)], year: Math.floor((Math.random() - 0.5) * 2000000) });
       }, 70);
       draw();
       return () => clearInterval(interval);
     }
-  }, [activeTab]);
+  }, [activeTab, invested]);
 
-  // Handle investing - syncs to profile
-  const handleInvest = async () => {
+  // Start trading - puts money into the market
+  const handleStartTrading = () => {
     if (!currentUser) {
       alert('Sign in to use the economy!');
       setActiveTab('signin');
       return;
     }
-    
-    const currentBalance = currentUser.balance || 1000;
-    const newBalance = currentBalance - 1000000;
-    const newInvestment = investment + 1000000;
-    setInvestment(newInvestment);
-    
-    try {
-      await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser.username,
-          balance: newBalance,
-          net_worth: newBalance + newInvestment + profit
-        })
-      });
-      await refreshCurrentUser();
-    } catch (e) {
-      console.log('Could not sync investment');
-    }
+    setInvested(prev => prev + 1000000);
   };
 
-  // Handle cash out - syncs to profile
-  const handleCashOut = async () => {
+  // Move to Savings - takes trading profit and adds to net_worth in database
+  const handleMoveToSavings = async () => {
     if (!currentUser) {
-      alert('Sign in to use the economy!');
+      alert('Sign in to save your earnings!');
       setActiveTab('signin');
       return;
     }
     
-    const currentBalance = currentUser.balance || 1000;
-    const newBalance = currentBalance + profit + investment;
+    const totalGain = tradingBalance; // profit or loss from trading
+    if (totalGain === 0 && invested === 0) {
+      alert('Nothing to save! Start trading first.');
+      return;
+    }
+    
+    const newNetWorth = (currentUser.net_worth || 0) + totalGain;
+    const newBalance = (currentUser.balance || 0) + totalGain; // balance tracks liquid cash
     
     try {
       await fetch('/api/profiles', {
@@ -337,14 +337,25 @@ export default function Explore() {
         body: JSON.stringify({
           username: currentUser.username,
           balance: newBalance,
-          net_worth: newBalance
+          net_worth: newNetWorth
         })
       });
-      setInvestment(0);
-      setProfit(0);
+      
+      // Reset trading session
+      setTradingBalance(0);
+      setInvested(0);
+      
+      // Refresh user data
       await refreshCurrentUser();
+      
+      if (totalGain >= 0) {
+        alert(`💰 Moved $${totalGain.toLocaleString()} to savings! Your net worth is now $${newNetWorth.toLocaleString()}`);
+      } else {
+        alert(`📉 Realized loss of $${Math.abs(totalGain).toLocaleString()}. Your net worth is now $${newNetWorth.toLocaleString()}`);
+      }
     } catch (e) {
-      console.log('Could not sync cash out');
+      console.log('Could not save to database');
+      alert('Failed to save. Try again.');
     }
   };
 
@@ -457,6 +468,16 @@ export default function Explore() {
     setIsPlaying(false);
   };
 
+  // Parse salary string to number (e.g., "$150,000/year" -> 150000)
+  const parseSalary = (payString) => {
+    if (!payString) return 0;
+    const match = payString.match(/\$?([\d,]+)/);
+    if (match) {
+      return parseInt(match[1].replace(/,/g, ''), 10);
+    }
+    return 0;
+  };
+
   const handleAcceptJob = async (job) => {
     if (job.expired) { alert('SYSTEM ERROR: OPPORTUNITY LOST.'); return; }
     
@@ -467,6 +488,11 @@ export default function Explore() {
     }
     
     try {
+      // Calculate salary to add to net worth
+      const salary = parseSalary(job.pay);
+      const newNetWorth = (currentUser.net_worth || 0) + salary;
+      
+      // Save job
       await fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -478,9 +504,19 @@ export default function Explore() {
         })
       });
       
-      // Refresh user data to show new job
+      // Update net worth with salary
+      await fetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          net_worth: newNetWorth
+        })
+      });
+      
+      // Refresh user data to show new job and net worth
       await refreshCurrentUser();
-      alert(`HIRED! You are now a ${job.title} at ${job.company}. Check your profile for updated stats!`);
+      alert(`HIRED! You are now a ${job.title} at ${job.company}. Salary of $${salary.toLocaleString()} added to your net worth!`);
     } catch (e) {
       alert(`HIRED! You are now a ${job.title} at ${job.company}.`);
     }
@@ -592,8 +628,8 @@ export default function Explore() {
   ];
 
   // Get display values for current user (from refreshed data)
-  const userBalance = currentUser?.balance ?? 1000;
-  const userNetWorth = currentUser?.net_worth ?? userBalance;
+  const userBalance = currentUser?.balance ?? 0;
+  const userNetWorth = currentUser?.net_worth ?? 0;
   const userJobs = currentUser?.jobs || [];
   const userRelationships = currentUser?.relationships || [];
   const userSongs = currentUser?.songs || [];
@@ -616,7 +652,7 @@ export default function Explore() {
             <span className="text-sm">🌐</span>
             <span className="group-hover:text-blue-400 transition-all">Corporate-Network-Explorer.exe</span>
             {currentUser && (
-              <span className="ml-4 text-xs bg-green-500 px-2 py-0.5 rounded">✓ Logged in as @{currentUser.username}</span>
+              <span className="ml-4 text-xs bg-green-500 px-2 py-0.5 rounded">✓ @{currentUser.username} | Net Worth: ${userNetWorth.toLocaleString()}</span>
             )}
           </div>
           <div className="flex gap-1">
@@ -664,10 +700,12 @@ export default function Explore() {
                         <div className="win95-inset p-3 bg-green-50">
                           <div className="text-[10px] text-gray-500 uppercase">Net Worth</div>
                           <div className="text-2xl font-black text-green-600">${userNetWorth.toLocaleString()}</div>
+                          <div className="text-[9px] text-gray-400">Savings + Job Salaries</div>
                         </div>
                         <div className="win95-inset p-3 bg-blue-50">
                           <div className="text-[10px] text-gray-500 uppercase">Balance</div>
-                          <div className="text-2xl font-black text-blue-600">${userBalance.toLocaleString()}</div>
+                          <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>${userBalance.toLocaleString()}</div>
+                          <div className="text-[9px] text-gray-400">Liquid Cash</div>
                         </div>
                       </div>
                       
@@ -701,11 +739,11 @@ export default function Explore() {
                         </div>
                       </div>
                       
-                      {/* Show jobs list */}
+                      {/* Show jobs list - scrollable */}
                       {userJobs.length > 0 && (
                         <div className="win95-inset p-3 bg-blue-50">
-                          <div className="text-[10px] text-blue-700 uppercase mb-2 font-bold">💼 Your Jobs</div>
-                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                          <div className="text-[10px] text-blue-700 uppercase mb-2 font-bold">💼 Your Jobs ({userJobs.length})</div>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userJobs.map((job, j) => (
                               <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
                                 <span className="font-bold">{job.job_title}</span> @ {job.company}
@@ -716,11 +754,11 @@ export default function Explore() {
                         </div>
                       )}
                       
-                      {/* Show relationships list */}
+                      {/* Show relationships list - scrollable */}
                       {userRelationships.length > 0 && (
                         <div className="win95-inset p-3 bg-pink-50">
-                          <div className="text-[10px] text-pink-700 uppercase mb-2 font-bold">❤️ Your Relationships</div>
-                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                          <div className="text-[10px] text-pink-700 uppercase mb-2 font-bold">❤️ Your Relationships ({userRelationships.length})</div>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userRelationships.map((rel, r) => (
                               <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
                                 💕 {rel.partner_name} ({rel.partner_species}) - {rel.relationship_type}
@@ -730,11 +768,11 @@ export default function Explore() {
                         </div>
                       )}
                       
-                      {/* Show songs list */}
+                      {/* Show songs list - scrollable */}
                       {userSongs.length > 0 && (
                         <div className="win95-inset p-3 bg-purple-50">
-                          <div className="text-[10px] text-purple-700 uppercase mb-2 font-bold">🎵 Your Compositions</div>
-                          <div className="space-y-1 max-h-24 overflow-y-auto">
+                          <div className="text-[10px] text-purple-700 uppercase mb-2 font-bold">🎵 Your Compositions ({userSongs.length})</div>
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userSongs.map((song, s) => {
                               const noteCount = getTotalNotes([song]);
                               return (
@@ -871,22 +909,21 @@ export default function Explore() {
                           <div className="space-y-3">
                             <div className="win95-inset bg-green-50 p-3">
                               <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
-                              <div className="text-2xl font-black text-green-600">${(u.net_worth || u.balance || 1000).toLocaleString()}</div>
-                              <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
+                              <div className="text-2xl font-black text-green-600">${(u.net_worth || 0).toLocaleString()}</div>
+                              <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 0).toLocaleString()}</div>
                             </div>
                             <div className="win95-inset bg-blue-50 p-3">
                               <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs ({(u.jobs || []).length})</div>
                               {(u.jobs || []).length === 0 ? (
                                 <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
                               ) : (
-                                <div className="space-y-1 max-h-24 overflow-y-auto">
-                                  {(u.jobs || []).slice(0, 3).map((job, j) => (
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {(u.jobs || []).map((job, j) => (
                                     <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
                                       <span className="font-bold">{job.job_title}</span> @ {job.company}
                                       <span className="text-green-600 ml-1">{job.pay}</span>
                                     </div>
                                   ))}
-                                  {(u.jobs || []).length > 3 && <div className="text-[9px] text-gray-400">+{u.jobs.length - 3} more...</div>}
                                 </div>
                               )}
                             </div>
@@ -898,8 +935,8 @@ export default function Explore() {
                               {(u.relationships || []).length === 0 ? (
                                 <div className="text-[10px] text-gray-500 italic">Forever alone in the void</div>
                               ) : (
-                                <div className="space-y-1 max-h-20 overflow-y-auto">
-                                  {(u.relationships || []).slice(0, 3).map((rel, r) => (
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {(u.relationships || []).map((rel, r) => (
                                     <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
                                       💕 {rel.partner_name} - {rel.relationship_type}
                                     </div>
@@ -930,7 +967,7 @@ export default function Explore() {
                 </div>
                 {!currentUser && (
                   <div className="win95-inset bg-yellow-50 p-4 text-center">
-                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save jobs to your profile!</span>
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save jobs to your profile! Salary will be added to your net worth.</span>
                   </div>
                 )}
                 <div className="grid grid-cols-1 gap-6">
@@ -1054,9 +1091,9 @@ export default function Explore() {
                 <div className="flex-1 text-center space-y-4 flex flex-col group">
                   <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">Money Shot Matrix v4.0</h2>
                   {currentUser ? (
-                    <div className="text-xs text-gray-600">Trading as <strong>@{currentUser.username}</strong> - Changes sync to your profile!</div>
+                    <div className="text-xs text-gray-600">Trading as <strong>@{currentUser.username}</strong> | Net Worth: <strong className="text-green-600">${userNetWorth.toLocaleString()}</strong></div>
                   ) : (
-                    <div className="text-xs text-red-600 font-bold">⚠️ Sign in to save your trading progress!</div>
+                    <div className="text-xs text-red-600 font-bold">⚠️ Sign in to save your trading profits!</div>
                   )}
                   <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
                     <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
@@ -1065,16 +1102,37 @@ export default function Explore() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset">
-                    <div className="flex justify-around items-center font-black text-3xl">
-                      <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}</div>
-                      <div className="text-blue-500 underline hover:text-blue-400">INV: ${investment.toLocaleString()}</div>
+                    <div className="flex justify-around items-center font-black text-2xl">
+                      <div className={`${tradingBalance >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>
+                        <div className="text-[10px] text-gray-500 uppercase">Trading P/L</div>
+                        {tradingBalance >= 0 ? '+' : ''}${tradingBalance.toLocaleString()}
+                      </div>
+                      <div className="text-blue-500 hover:text-blue-400">
+                        <div className="text-[10px] text-gray-500 uppercase">Invested</div>
+                        ${invested.toLocaleString()}
+                      </div>
                     </div>
-                    <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 hover:text-yellow-300">BALANCE: ${(currentUser?.balance || 1000).toLocaleString()}</div>
-                    {currentUser && <div className="text-green-300 text-lg">NET WORTH: ${((currentUser?.balance || 1000) + investment + profit).toLocaleString()}</div>}
+                    <div className="border-t border-gray-800 pt-2 grid grid-cols-2 gap-4 text-center">
+                      <div>
+                        <div className="text-[10px] text-gray-500 uppercase">Your Balance</div>
+                        <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>${userBalance.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500 uppercase">Your Net Worth</div>
+                        <div className="text-2xl font-black text-green-300">${userNetWorth.toLocaleString()}</div>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-4 justify-center">
-                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleInvest}>INF_INVEST +$1M</button>
-                    <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleCashOut}>CASH OUT ALL</button>
+                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleStartTrading}>
+                      💰 INVEST $1M
+                    </button>
+                    <button className="win95-button px-8 py-3 bg-blue-200 hover:bg-blue-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleMoveToSavings}>
+                      🏦 MOVE TO SAVINGS
+                    </button>
+                  </div>
+                  <div className="text-[10px] text-gray-500 win95-inset p-2 bg-yellow-50">
+                    💡 <strong>How it works:</strong> Invest to start trading. Profits/losses fluctuate with the market. Click "Move to Savings" to lock in your gains (or losses) to your net worth. Job salaries also add to net worth!
                   </div>
                 </div>
                 <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
@@ -1091,7 +1149,7 @@ export default function Explore() {
                   <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
                   <div className="flex items-center gap-4">
                     {currentUser ? (
-                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username}</span>
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username} | Total Notes: {userTotalNotes}</span>
                     ) : (
                       <span className="text-xs bg-red-500/50 px-2 py-1 rounded">Sign in to save compositions!</span>
                     )}
@@ -1112,7 +1170,7 @@ export default function Explore() {
                 <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
                   <strong className="group-hover:text-blue-600">KEYBOARD SHORTCUTS:</strong> 
                   <span className="group-hover:text-gray-800"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
-                  <div className="mt-1 text-purple-600 font-bold">🎵 Notes in this recording: {recordedNotes.length} {currentUser && `| Total saved: ${userTotalNotes}`}</div>
+                  <div className="mt-1 text-purple-600 font-bold">🎵 Notes in this recording: {recordedNotes.length} {currentUser && `| Your total saved: ${userTotalNotes}`}</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
