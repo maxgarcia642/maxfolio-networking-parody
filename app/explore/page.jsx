@@ -17,7 +17,6 @@ const KEYBOARD_MAP = {
   'k': 'C5', 'o': 'C#5', 'l': 'D5', 'p': 'D#5', ';': 'E5'
 };
 
-// Ludicrous spam messages
 const SPAM_MESSAGES = [
   "Are you real? My source code says you are.",
   "Hey... noticed you browsing the void.",
@@ -91,6 +90,7 @@ export default function Explore() {
   const [recordingStartTime, setRecordingStartTime] = useState(null);
   const [activeKeys, setActiveKeys] = useState(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
+  const [totalNotesPlayed, setTotalNotesPlayed] = useState(0);
   const audioContextRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -103,14 +103,40 @@ export default function Explore() {
     const savedUser = localStorage.getItem('maxfolio_user');
     if (savedUser) {
       try {
-        setCurrentUser(JSON.parse(savedUser));
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+        setBalance(user.balance || 1000);
       } catch (e) {
         localStorage.removeItem('maxfolio_user');
       }
     }
   }, []);
 
-  // Update current time every second for member duration display
+  // Sync balance changes to user profile
+  const updateUserBalance = async (newBalance) => {
+    if (!currentUser) return;
+    
+    try {
+      await fetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          balance: newBalance,
+          net_worth: newBalance + investment + profit
+        })
+      });
+      
+      // Update local storage
+      const updatedUser = { ...currentUser, balance: newBalance, net_worth: newBalance + investment + profit };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.log('Could not sync balance');
+    }
+  };
+
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -170,6 +196,7 @@ export default function Explore() {
       
       if (data.success && data.user) {
         setCurrentUser(data.user);
+        setBalance(data.user.balance || 1000);
         localStorage.setItem('maxfolio_user', JSON.stringify(data.user));
         setLoginUsername('');
         setLoginPassword('');
@@ -188,6 +215,9 @@ export default function Explore() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUser(null);
+    setBalance(1000);
+    setInvestment(0);
+    setProfit(0);
     localStorage.removeItem('maxfolio_user');
     alert('Logged out. Your consciousness has been disconnected from the mainframe.');
   };
@@ -249,6 +279,27 @@ export default function Explore() {
     }
   }, [activeTab]);
 
+  // Handle investing - syncs to profile
+  const handleInvest = () => {
+    const newBalance = balance - 1000000;
+    setInvestment(i => i + 1000000);
+    setBalance(newBalance);
+    if (currentUser) {
+      updateUserBalance(newBalance);
+    }
+  };
+
+  // Handle cash out - syncs to profile
+  const handleCashOut = () => {
+    const newBalance = balance + profit + investment;
+    setBalance(newBalance);
+    setInvestment(0);
+    setProfit(0);
+    if (currentUser) {
+      updateUserBalance(newBalance);
+    }
+  };
+
   // Piano keyboard handlers
   useEffect(() => {
     if (activeTab !== 'artist') return;
@@ -279,6 +330,10 @@ export default function Explore() {
     if (isRecording && destinationRef.current) gainNode.connect(destinationRef.current);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
+    
+    // Track total notes played
+    setTotalNotesPlayed(prev => prev + 1);
+    
     if (isRecording && recordingStartTime) {
       setRecordedNotes(prev => [...prev, { note, timestamp: Date.now() - recordingStartTime }]);
     }
@@ -491,7 +546,6 @@ export default function Explore() {
             {activeTab === 'signin' && (
               <div className="max-w-md mx-auto space-y-6 pt-8">
                 {currentUser ? (
-                  // LOGGED IN - SHOW PROFILE
                   <div className="space-y-6">
                     <div className="text-center">
                       <div className="text-6xl mb-4">👤</div>
@@ -503,11 +557,11 @@ export default function Explore() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="win95-inset p-3 bg-green-50">
                           <div className="text-[10px] text-gray-500 uppercase">Net Worth</div>
-                          <div className="text-2xl font-black text-green-600">${(currentUser.net_worth || 1000).toLocaleString()}</div>
+                          <div className="text-2xl font-black text-green-600">${(balance + investment + profit).toLocaleString()}</div>
                         </div>
                         <div className="win95-inset p-3 bg-blue-50">
                           <div className="text-[10px] text-gray-500 uppercase">Balance</div>
-                          <div className="text-2xl font-black text-blue-600">${(currentUser.balance || 1000).toLocaleString()}</div>
+                          <div className="text-2xl font-black text-blue-600">${balance.toLocaleString()}</div>
                         </div>
                       </div>
                       
@@ -536,8 +590,8 @@ export default function Explore() {
                           <div className="text-[9px] uppercase">Relationships</div>
                         </div>
                         <div className="win95-inset p-2 bg-purple-50">
-                          <div className="text-2xl font-black text-purple-600">{(currentUser.songs || []).length}</div>
-                          <div className="text-[9px] uppercase">Songs</div>
+                          <div className="text-2xl font-black text-purple-600">{totalNotesPlayed}</div>
+                          <div className="text-[9px] uppercase">Notes Played</div>
                         </div>
                       </div>
                     </div>
@@ -547,7 +601,6 @@ export default function Explore() {
                     </button>
                   </div>
                 ) : (
-                  // NOT LOGGED IN - SHOW LOGIN FORM
                   <div className="text-center space-y-6">
                     <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
                     <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
@@ -599,7 +652,7 @@ export default function Explore() {
                       </button>
                       
                       <div className="text-[10px] text-gray-500 mt-4 win95-inset p-2 bg-yellow-50">
-                        💡 <strong>TIP:</strong> Click any user card in "Active Users" to copy their credentials!
+                        💡 <strong>TIP:</strong> Click any user's password in "Active Users" to copy their credentials!
                       </div>
                     </div>
                   </div>
@@ -663,7 +716,7 @@ export default function Explore() {
                         <div className="space-y-3">
                           <div className="win95-inset bg-green-50 p-3">
                             <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
-                            <div className="text-2xl font-black text-green-600">${(u.net_worth || 1000).toLocaleString()}</div>
+                            <div className="text-2xl font-black text-green-600">${(u.net_worth || u.balance || 1000).toLocaleString()}</div>
                             <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
                           </div>
                           <div className="win95-inset bg-blue-50 p-3">
@@ -700,18 +753,19 @@ export default function Explore() {
                             )}
                           </div>
                           <div className="win95-inset bg-purple-50 p-3">
-                            <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Songs ({(u.songs || []).length})</div>
-                            {(u.songs || []).length === 0 ? (
-                              <div className="text-[10px] text-gray-500 italic">No compositions yet</div>
-                            ) : (
-                              <div className="space-y-1 max-h-20 overflow-y-auto">
-                                {(u.songs || []).slice(0, 3).map((song, s) => (
-                                  <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200">
-                                    🎹 {song.song_name}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Notes Recorded</div>
+                            <div className="text-2xl font-black text-purple-600">
+                              {(u.songs || []).reduce((acc, song) => {
+                                // Try to parse notes_data if it exists
+                                try {
+                                  const notes = JSON.parse(song.notes_data || '[]');
+                                  return acc + (Array.isArray(notes) ? notes.length : 0);
+                                } catch {
+                                  return acc;
+                                }
+                              }, 0) || (u.songs || []).length * 10}
+                            </div>
+                            <div className="text-[9px] text-gray-500">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
                           </div>
                         </div>
                       </div>
@@ -853,6 +907,7 @@ export default function Explore() {
                 </div>
                 <div className="flex-1 text-center space-y-4 flex flex-col group">
                   <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">Money Shot Matrix v4.0</h2>
+                  {currentUser && <div className="text-xs text-gray-600">Trading as @{currentUser.username} - Changes sync to your profile!</div>}
                   <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
                     <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
                     <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1">
@@ -865,10 +920,11 @@ export default function Explore() {
                       <div className="text-blue-500 underline hover:text-blue-400">INV: ${investment.toLocaleString()}</div>
                     </div>
                     <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 hover:text-yellow-300">BALANCE: ${balance.toLocaleString()}</div>
+                    {currentUser && <div className="text-green-300 text-lg">NET WORTH: ${(balance + investment + profit).toLocaleString()}</div>}
                   </div>
                   <div className="flex gap-4 justify-center">
-                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
-                    <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
+                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleInvest}>INF_INVEST +$1M</button>
+                    <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleCashOut}>CASH OUT ALL</button>
                   </div>
                 </div>
                 <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
@@ -900,6 +956,7 @@ export default function Explore() {
                 <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
                   <strong className="group-hover:text-blue-600">KEYBOARD SHORTCUTS:</strong> 
                   <span className="group-hover:text-gray-800"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
+                  <div className="mt-1 text-purple-600 font-bold">🎵 Total Notes Played This Session: {totalNotesPlayed}</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
