@@ -1,188 +1,147 @@
-// Vercel compatible Edge/Serverless Route
-// This ensures the route is always dynamic and not cached
+// Vercel compatible Serverless Route
 export const dynamic = 'force-dynamic';
 import { query } from '../../../lib/db';
 
 /**
  * POST handler to create a new profile.
- * Expects: username, password, job, bio, skills, portfolio_url, audio_url (optional)
  */
 export async function POST(request) {
+  console.log('POST /api/profiles called');
+  
   try {
     const data = await request.json();
     const { username, password, job, bio, skills, portfolio_url, audio_url } = data;
     
-    // Validate required fields
     if (!username || !password) {
-      return new Response(JSON.stringify({ 
-        error: 'Username and password are required',
-        details: 'Please fill in both username and password fields'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ 
+        error: 'Username and password are required'
+      }, { status: 400 });
     }
     
-    // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
-      console.error('DATABASE_URL environment variable is not set');
-      return new Response(JSON.stringify({ 
-        error: 'Database not configured. Contact the system administrator.',
-        details: 'DATABASE_URL is missing'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.error('DATABASE_URL is not set');
+      return Response.json({ 
+        error: 'Database not configured',
+        hint: 'Add DATABASE_URL to Vercel Environment Variables'
+      }, { status: 500 });
     }
     
-    // Insert profile data into PostgreSQL with default balance
     await query(
       `INSERT INTO profiles (username, password, job, bio, skills, portfolio_url, audio_url, balance) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [username, password, job || '', bio || '', skills || '', portfolio_url || '', audio_url || null, 1000]
     );
     
-    return new Response(JSON.stringify({ success: true, username }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.log('Profile created:', username);
+    return Response.json({ success: true, username });
+    
   } catch (error) {
-    console.error('Database error:', error.message, error.code);
+    console.error('POST Error:', error.message, error.code);
     
-    // Check for unique constraint violation (duplicate username)
     if (error.code === '23505') {
-      return new Response(JSON.stringify({ 
-        error: 'Username already exists in the mainframe. Try a different identity.',
-        details: 'Duplicate username'
-      }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ 
+        error: 'Username already taken. Try a different one.'
+      }, { status: 409 });
     }
     
-    // Check for table not existing
     if (error.code === '42P01') {
-      return new Response(JSON.stringify({ 
-        error: 'Database tables not set up. Run SUPABASE_SETUP.sql in your Supabase SQL Editor.',
-        details: 'Table does not exist'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ 
+        error: 'Database table missing. Run SUPABASE_SETUP.sql in Supabase SQL Editor.',
+        hint: 'Go to Supabase > SQL Editor > Run the CREATE TABLE query'
+      }, { status: 500 });
     }
     
-    // Check for column not existing
     if (error.code === '42703') {
-      return new Response(JSON.stringify({ 
-        error: 'Database schema outdated. Run the ALTER TABLE commands from SUPABASE_SETUP.sql.',
-        details: `Column error: ${error.message}`
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ 
+        error: 'Database column missing. Run ALTER TABLE commands.',
+        detail: error.message
+      }, { status: 500 });
     }
     
-    // Connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      return new Response(JSON.stringify({ 
-        error: 'Cannot connect to database. Check DATABASE_URL in Vercel settings.',
-        details: 'Connection refused or host not found'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Authentication error
     if (error.code === '28P01' || error.code === '28000') {
-      return new Response(JSON.stringify({ 
-        error: 'Database authentication failed. Check your password in DATABASE_URL.',
-        details: 'Invalid password or authentication failed'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ 
+        error: 'Database password incorrect. Check DATABASE_URL in Vercel.',
+        hint: 'Make sure you replaced [YOUR-PASSWORD] with your actual Supabase database password'
+      }, { status: 500 });
     }
     
-    return new Response(JSON.stringify({ 
-      error: 'Failed to publish profile. The void rejected your submission.',
-      details: error.message || 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      return Response.json({ 
+        error: 'Cannot reach database server. Check DATABASE_URL host.',
+        hint: 'Verify the hostname in your DATABASE_URL is correct'
+      }, { status: 500 });
+    }
+    
+    return Response.json({ 
+      error: 'Failed to create profile',
+      detail: error.message,
+      code: error.code
+    }, { status: 500 });
   }
 }
 
 /**
- * GET handler to retrieve the latest 50 profiles.
+ * GET handler to retrieve profiles.
  */
 export async function GET() {
+  console.log('GET /api/profiles called');
+  
   try {
-    // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
-      return new Response(JSON.stringify({ 
+      console.error('DATABASE_URL is not set');
+      return Response.json({ 
         error: 'Database not configured',
-        details: 'DATABASE_URL is missing'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        hint: 'Add DATABASE_URL to Vercel Environment Variables'
+      }, { status: 500 });
     }
     
-    // Fetch profiles ordered by creation date, including new fields
     const res = await query(
       `SELECT username, password, job, bio, skills, portfolio_url, audio_url, balance 
        FROM profiles 
        ORDER BY created_at DESC 
        LIMIT 50`
     );
-    return new Response(JSON.stringify(res.rows), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Fetch error:', error.message, error.code);
     
-    // Table doesn't exist
+    console.log('Fetched profiles:', res.rows.length);
+    return Response.json(res.rows);
+    
+  } catch (error) {
+    console.error('GET Error:', error.message, error.code);
+    
+    // If table doesn't exist, return empty array
     if (error.code === '42P01') {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.log('Table does not exist, returning empty array');
+      return Response.json([]);
     }
     
-    // Column doesn't exist - return empty but don't fail
+    // If columns missing, try simpler query
     if (error.code === '42703') {
+      console.log('Trying simpler query without new columns');
       try {
-        // Try simpler query without new columns
         const res = await query(
           `SELECT username, password, job, bio, skills, portfolio_url 
            FROM profiles 
            ORDER BY created_at DESC 
            LIMIT 50`
         );
-        return new Response(JSON.stringify(res.rows.map(r => ({ ...r, balance: 1000, audio_url: null }))), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json(res.rows.map(r => ({ ...r, balance: 1000, audio_url: null })));
       } catch (e) {
-        return new Response(JSON.stringify([]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json([]);
       }
     }
     
-    return new Response(JSON.stringify({ error: 'Failed to fetch profiles from the void' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Return detailed error for debugging
+    return Response.json({ 
+      error: 'Failed to fetch profiles',
+      detail: error.message,
+      code: error.code,
+      hint: getErrorHint(error.code)
+    }, { status: 500 });
   }
 }
 
 /**
- * PATCH handler to update a profile's audio_url or balance
+ * PATCH handler to update a profile
  */
 export async function PATCH(request) {
   try {
@@ -190,13 +149,9 @@ export async function PATCH(request) {
     const { username, audio_url, balance } = data;
     
     if (!username) {
-      return new Response(JSON.stringify({ error: 'Username is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ error: 'Username is required' }, { status: 400 });
     }
     
-    // Build dynamic update query
     const updates = [];
     const values = [];
     let paramIndex = 1;
@@ -214,10 +169,7 @@ export async function PATCH(request) {
     }
     
     if (updates.length === 0) {
-      return new Response(JSON.stringify({ error: 'No fields to update' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Response.json({ error: 'No fields to update' }, { status: 400 });
     }
     
     values.push(username);
@@ -227,15 +179,22 @@ export async function PATCH(request) {
       values
     );
     
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return Response.json({ success: true });
   } catch (error) {
-    console.error('Update error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to update profile' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('PATCH Error:', error);
+    return Response.json({ error: 'Failed to update profile' }, { status: 500 });
   }
+}
+
+function getErrorHint(code) {
+  const hints = {
+    '28P01': 'Wrong database password in DATABASE_URL',
+    '28000': 'Authentication failed - check DATABASE_URL credentials',
+    '42P01': 'Table does not exist - run SUPABASE_SETUP.sql',
+    '42703': 'Column does not exist - run ALTER TABLE commands',
+    '3D000': 'Database does not exist',
+    'ENOTFOUND': 'Cannot find database host - check DATABASE_URL',
+    'ECONNREFUSED': 'Connection refused - database might be down',
+  };
+  return hints[code] || 'Check DATABASE_URL and Supabase settings';
 }
