@@ -265,10 +265,10 @@ export default function Explore() {
         points.push({x, y, color});
         if (points.length > 100) points.shift();
         
-        // Update trading P/L if money is invested
+        // Update trading P/L if money is invested (ensure numeric operations)
         if (tradingPot > 0) {
-          const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
-          setTradingPL(prev => prev + delta);
+          const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : Math.round((Math.random() - 0.5) * 100);
+          setTradingPL(prev => Math.round(Number(prev) + delta));
         }
         
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -290,7 +290,7 @@ export default function Explore() {
   };
 
   // ECONOMY BUTTON 2: Cash Out - records trading P/L to Balance
-  const handleCashOut = async () => {
+  const handleCashOut = () => {
     if (!currentUser) {
       alert('Sign in to cash out!');
       setActiveTab('signin');
@@ -302,12 +302,12 @@ export default function Explore() {
       return;
     }
     
-    // Add trading P/L to current balance (Previous Balance + P/L)
-    const currentBalance = currentUser.balance || 0;
-    const newBalance = currentBalance + tradingPL;
-    const plAmount = tradingPL;
+    // Convert to numbers and round to avoid floating point issues
+    const currentBalance = Math.round(Number(currentUser.balance) || 0);
+    const plAmount = Math.round(Number(tradingPL) || 0);
+    const newBalance = currentBalance + plAmount;
     
-    // Update server (fire and forget - we trust it works)
+    // Update server
     fetch('/api/profiles', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -334,26 +334,26 @@ export default function Explore() {
   };
 
   // ECONOMY BUTTON 3: Move to Savings - moves Balance to Net Worth
-  const handleMoveToSavings = async () => {
+  const handleMoveToSavings = () => {
     if (!currentUser) {
       alert('Sign in to save!');
       setActiveTab('signin');
       return;
     }
     
-    const currentBalance = currentUser.balance || 0;
+    // Convert to numbers and round
+    const currentBalance = Math.round(Number(currentUser.balance) || 0);
     if (currentBalance === 0) {
       alert('No balance to move! Cash out your trades first.');
       return;
     }
     
     // Add balance to net worth (Previous Net Worth + Balance), reset balance to 0
-    // Works for both positive and negative balances
-    const currentNetWorth = currentUser.net_worth || 0;
+    const currentNetWorth = Math.round(Number(currentUser.net_worth) || 0);
     const newNetWorth = currentNetWorth + currentBalance;
     const movedAmount = currentBalance;
     
-    // Update server (fire and forget - we trust it works)
+    // Update server
     fetch('/api/profiles', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -638,9 +638,9 @@ export default function Explore() {
     { note: 'F#5', position: 10 }, { note: 'G#5', position: 11 }, { note: 'A#5', position: 12 }
   ];
 
-  // Get display values for current user
-  const userBalance = currentUser?.balance ?? 0;
-  const userNetWorth = currentUser?.net_worth ?? 0;
+  // Get display values for current user - ensure numbers
+  const userBalance = Math.round(Number(currentUser?.balance) || 0);
+  const userNetWorth = Math.round(Number(currentUser?.net_worth) || 0);
   const userJobs = currentUser?.jobs || [];
   const userRelationships = currentUser?.relationships || [];
   const userSongs = currentUser?.songs || [];
@@ -917,9 +917,9 @@ export default function Explore() {
                           <div className="space-y-3">
                             <div className="win95-inset bg-green-50 p-3 hover:bg-green-100 transition-colors cursor-default group/item">
                               <div className="text-[10px] font-bold text-green-700 uppercase mb-2 group-hover/item:text-green-900 transition-colors">💰 Net Worth</div>
-                              <div className="text-2xl font-black text-green-600 group-hover/item:scale-105 transition-transform">${(u.net_worth || 0).toLocaleString()}</div>
+                              <div className="text-2xl font-black text-green-600 group-hover/item:scale-105 transition-transform">${Math.round(Number(u.net_worth) || 0).toLocaleString()}</div>
                               <div className="text-[8px] text-gray-400 group-hover/item:text-gray-600 leading-tight mb-1">Savings (excluding your various Job Salaries, batteries not included)</div>
-                              <div className={`text-sm font-bold ${(u.balance || 0) >= 0 ? 'text-blue-600' : 'text-red-600'} group-hover/item:text-blue-700 transition-colors`}>💵 Balance: ${(u.balance || 0).toLocaleString()}</div>
+                              <div className={`text-sm font-bold ${(Number(u.balance) || 0) >= 0 ? 'text-blue-600' : 'text-red-600'} group-hover/item:text-blue-700 transition-colors`}>💵 Balance: ${Math.round(Number(u.balance) || 0).toLocaleString()}</div>
                               <div className="text-[8px] text-gray-400 group-hover/item:text-gray-600 leading-tight">Liquid Capital – readily accessible funds for immediate market deployment</div>
                             </div>
                             <div className="win95-inset bg-blue-50 p-3 hover:bg-blue-100 transition-colors group/item">
