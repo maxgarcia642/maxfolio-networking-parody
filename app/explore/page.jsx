@@ -78,6 +78,13 @@ export default function Explore() {
   const canvasRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
   
+  // Auth state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  
   // Piano/Artist state
   const [isRecording, setIsRecording] = useState(false);
   const [recordedNotes, setRecordedNotes] = useState([]);
@@ -90,6 +97,18 @@ export default function Explore() {
   const destinationRef = useRef(null);
   
   const [timeline, setTimeline] = useState({ month: 'JAN', year: 2025 });
+
+  // Load current user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('maxfolio_user');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('maxfolio_user');
+      }
+    }
+  }, []);
 
   // Update current time every second for member duration display
   useEffect(() => {
@@ -129,6 +148,56 @@ export default function Explore() {
       handleGenerateJobs();
     }
   }, [activeTab]);
+
+  // Login handler
+  const handleLogin = async () => {
+    if (!loginUsername || !loginPassword) {
+      setLoginError('Enter both username and password!');
+      return;
+    }
+    
+    setLoginLoading(true);
+    setLoginError('');
+    
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        localStorage.setItem('maxfolio_user', JSON.stringify(data.user));
+        setLoginUsername('');
+        setLoginPassword('');
+        setLoginError('');
+        alert(`Welcome back, @${data.user.username}! You are now logged into the mainframe.`);
+      } else {
+        setLoginError(data.error || 'Login failed');
+      }
+    } catch (error) {
+      setLoginError('Connection to mainframe lost');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('maxfolio_user');
+    alert('Logged out. Your consciousness has been disconnected from the mainframe.');
+  };
+
+  // Quick login from user card
+  const handleQuickLogin = (username, password) => {
+    setLoginUsername(username);
+    setLoginPassword(password);
+    setActiveTab('signin');
+  };
 
   // Economy graph effect
   useEffect(() => {
@@ -256,7 +325,52 @@ export default function Explore() {
 
   const handleAcceptJob = async (job) => {
     if (job.expired) { alert('SYSTEM ERROR: OPPORTUNITY LOST.'); return; }
-    alert(`HIRED! You are now a ${job.title} at ${job.company}.`);
+    
+    if (!currentUser) {
+      alert('You must be logged in to apply for jobs! Go to Sign In tab.');
+      setActiveTab('signin');
+      return;
+    }
+    
+    try {
+      await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          job_title: job.title,
+          company: job.company,
+          pay: job.pay
+        })
+      });
+      alert(`HIRED! You are now a ${job.title} at ${job.company}. Your net worth has been updated.`);
+    } catch (e) {
+      alert(`HIRED! You are now a ${job.title} at ${job.company}.`);
+    }
+  };
+
+  const handleAcceptLove = async (match) => {
+    if (!currentUser) {
+      alert('You must be logged in to accept love! Go to Sign In tab.');
+      setActiveTab('signin');
+      return;
+    }
+    
+    try {
+      await fetch('/api/relationships', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          partner_name: match.name,
+          partner_species: match.species,
+          relationship_type: match.type
+        })
+      });
+      alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}. This is now your identity.`);
+    } catch (e) {
+      alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}.`);
+    }
   };
 
   const handleGenerateJobs = () => {
@@ -278,7 +392,6 @@ export default function Explore() {
     if (!spamInput.trim()) return;
     setSpamMessages(prev => [{ sent: true, text: spamInput }, ...prev].slice(0, 100));
     setSpamInput('');
-    // Generate responses
     setTimeout(() => {
       const responses = Array.from({length: Math.floor(Math.random() * 5) + 2}, () => 
         SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]
@@ -303,7 +416,6 @@ export default function Explore() {
     return () => clearInterval(jobTicker);
   }, []);
 
-  // Helper to format time duration
   const formatDuration = (startDate) => {
     if (!startDate) return 'Unknown';
     const start = new Date(startDate).getTime();
@@ -342,8 +454,14 @@ export default function Explore() {
           <div className="flex items-center gap-2">
             <span className="text-sm">🌐</span>
             <span className="group-hover:text-blue-400 transition-all">Corporate-Network-Explorer.exe</span>
+            {currentUser && (
+              <span className="ml-4 text-xs bg-green-500 px-2 py-0.5 rounded">✓ Logged in as @{currentUser.username}</span>
+            )}
           </div>
           <div className="flex gap-1">
+            {currentUser && (
+              <button className="win95-button py-0 px-2 text-xs bg-red-200 hover:bg-red-300" onClick={handleLogout}>Logout</button>
+            )}
             <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100" onClick={() => setIsShrunk(true)}>_</button>
             <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white" onClick={() => window.location.href = '/'}>X</button>
           </div>
@@ -352,7 +470,7 @@ export default function Explore() {
         <div className="bg-[#c0c0c0] p-1 border-b-2 border-gray-600 flex gap-1 flex-wrap">
           <button onClick={() => window.location.href = '/'} className="win95-button text-[10px] px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all">← Main Menu</button>
           {[
-            {id: 'signin', label: 'Sign In', icon: '🔐'},
+            {id: 'signin', label: currentUser ? 'My Profile' : 'Sign In', icon: '🔐'},
             {id: 'users', label: 'Active Users', icon: '👥'},
             {id: 'jobs', label: 'Available Jobs', icon: '💼'},
             {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
@@ -369,22 +487,127 @@ export default function Explore() {
         <div className="p-4 bg-[#c0c0c0] h-[750px] overflow-hidden flex flex-col">
           <div className="bg-white flex-1 win95-inset overflow-y-auto p-6 hover:border-blue-300 transition-colors">
             
-            {/* SIGN IN TAB */}
+            {/* SIGN IN / PROFILE TAB */}
             {activeTab === 'signin' && (
-              <div className="max-w-sm mx-auto space-y-6 pt-20 text-center">
-                <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
-                <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
-                <div className="space-y-4 pt-4">
-                  <div className="win95-inset p-1 hover:shadow-md"><input type="text" placeholder="IDENTITY" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
-                  <div className="win95-inset p-1 hover:shadow-md"><input type="password" placeholder="PASSCODE" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
-                  <button className="win95-button w-full py-4 text-xl bg-blue-100 hover:bg-blue-200 hover:scale-[1.02] active:scale-95 transition-all">EXECUTE LOGIN</button>
-                  <div className="flex items-center gap-2 pt-2"><div className="flex-1 h-[2px] bg-gray-300"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="flex-1 h-[2px] bg-gray-300"></div></div>
-                  <button className="win95-button w-full py-2 text-sm bg-yellow-50 hover:bg-yellow-100 hover:scale-[1.02] active:scale-95 transition-all font-black uppercase italic" onClick={() => window.location.href = '/create'}>Create Account</button>
-                </div>
+              <div className="max-w-md mx-auto space-y-6 pt-8">
+                {currentUser ? (
+                  // LOGGED IN - SHOW PROFILE
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">👤</div>
+                      <h2 className="font-black text-3xl text-blue-900 uppercase">@{currentUser.username}</h2>
+                      <div className="text-sm text-gray-600 italic mt-2">{currentUser.job || 'Void Walker'}</div>
+                    </div>
+                    
+                    <div className="win95-window p-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="win95-inset p-3 bg-green-50">
+                          <div className="text-[10px] text-gray-500 uppercase">Net Worth</div>
+                          <div className="text-2xl font-black text-green-600">${(currentUser.net_worth || 1000).toLocaleString()}</div>
+                        </div>
+                        <div className="win95-inset p-3 bg-blue-50">
+                          <div className="text-[10px] text-gray-500 uppercase">Balance</div>
+                          <div className="text-2xl font-black text-blue-600">${(currentUser.balance || 1000).toLocaleString()}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="win95-inset p-3">
+                        <div className="text-[10px] text-gray-500 uppercase">Member Since</div>
+                        <div className="text-lg font-bold">{formatDuration(currentUser.member_since)}</div>
+                      </div>
+                      
+                      <div className="win95-inset p-3">
+                        <div className="text-[10px] text-gray-500 uppercase">Bio</div>
+                        <div className="text-sm italic">{currentUser.bio || 'No bio provided'}</div>
+                      </div>
+                      
+                      <div className="win95-inset p-3">
+                        <div className="text-[10px] text-gray-500 uppercase">Skills</div>
+                        <div className="text-sm">{currentUser.skills || 'None listed'}</div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="win95-inset p-2 bg-blue-50">
+                          <div className="text-2xl font-black text-blue-600">{(currentUser.jobs || []).length}</div>
+                          <div className="text-[9px] uppercase">Jobs</div>
+                        </div>
+                        <div className="win95-inset p-2 bg-pink-50">
+                          <div className="text-2xl font-black text-pink-600">{(currentUser.relationships || []).length}</div>
+                          <div className="text-[9px] uppercase">Relationships</div>
+                        </div>
+                        <div className="win95-inset p-2 bg-purple-50">
+                          <div className="text-2xl font-black text-purple-600">{(currentUser.songs || []).length}</div>
+                          <div className="text-[9px] uppercase">Songs</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button className="win95-button w-full py-3 bg-red-100 hover:bg-red-200 font-bold" onClick={handleLogout}>
+                      DISCONNECT FROM MAINFRAME
+                    </button>
+                  </div>
+                ) : (
+                  // NOT LOGGED IN - SHOW LOGIN FORM
+                  <div className="text-center space-y-6">
+                    <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
+                    <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
+                    
+                    {loginError && (
+                      <div className="bg-red-100 border-2 border-red-500 p-3 text-red-700 text-sm font-bold">
+                        ⚠️ {loginError}
+                      </div>
+                    )}
+                    
+                    <div className="space-y-4 pt-4">
+                      <div className="win95-inset p-1 hover:shadow-md">
+                        <input 
+                          type="text" 
+                          placeholder="IDENTITY (username)" 
+                          className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50"
+                          value={loginUsername}
+                          onChange={(e) => setLoginUsername(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                        />
+                      </div>
+                      <div className="win95-inset p-1 hover:shadow-md">
+                        <input 
+                          type="text" 
+                          placeholder="PASSCODE (password - visible for fun!)" 
+                          className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                        />
+                      </div>
+                      <button 
+                        className="win95-button w-full py-4 text-xl bg-blue-100 hover:bg-blue-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                        onClick={handleLogin}
+                        disabled={loginLoading}
+                      >
+                        {loginLoading ? 'AUTHENTICATING...' : 'EXECUTE LOGIN'}
+                      </button>
+                      <div className="flex items-center gap-2 pt-2">
+                        <div className="flex-1 h-[2px] bg-gray-300"></div>
+                        <span className="text-[10px] font-bold text-gray-400">OR</span>
+                        <div className="flex-1 h-[2px] bg-gray-300"></div>
+                      </div>
+                      <button 
+                        className="win95-button w-full py-2 text-sm bg-yellow-50 hover:bg-yellow-100 hover:scale-[1.02] active:scale-95 transition-all font-black uppercase italic"
+                        onClick={() => window.location.href = '/create'}
+                      >
+                        Create Account
+                      </button>
+                      
+                      <div className="text-[10px] text-gray-500 mt-4 win95-inset p-2 bg-yellow-50">
+                        💡 <strong>TIP:</strong> Click any user card in "Active Users" to copy their credentials!
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* ACTIVE USERS TAB - NEW EXPANDED DESIGN */}
+            {/* ACTIVE USERS TAB */}
             {activeTab === 'users' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
@@ -401,11 +624,9 @@ export default function Explore() {
                   </div>
                 )}
                 
-                {/* EXPANDED USER CARDS */}
                 <div className="space-y-6">
                   {users.map((u, i) => (
                     <div key={i} className="win95-window p-0 hover:shadow-2xl hover:border-blue-400 transition-all bg-white/90 backdrop-blur-sm group">
-                      {/* Header */}
                       <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-3 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <div className="text-3xl">👤</div>
@@ -415,27 +636,30 @@ export default function Explore() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-[10px] bg-white/20 px-2 py-1 rounded">PW: {u.password}</div>
+                          <button 
+                            className="text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/40 transition-colors cursor-pointer"
+                            onClick={() => handleQuickLogin(u.username, u.password)}
+                            title="Click to sign in as this user"
+                          >
+                            🔑 PW: {u.password}
+                          </button>
                           <div className="text-[9px] mt-1 opacity-70">⏱️ Member for: {formatDuration(u.member_since)}</div>
                         </div>
                       </div>
                       
-                      {/* Content Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-                        {/* Column 1: Bio & Skills */}
                         <div className="space-y-3">
                           <div className="win95-inset bg-gray-50 p-3">
                             <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">📝 Bio</div>
-                            <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided. A mystery wrapped in an enigma.'}</div>
+                            <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided.'}</div>
                           </div>
                           <div className="win95-inset bg-gray-50 p-3">
                             <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">🎯 Skills</div>
-                            <div className="text-xs text-gray-700">{u.skills || 'Existing, Breathing, Occasionally Blinking'}</div>
+                            <div className="text-xs text-gray-700">{u.skills || 'None listed'}</div>
                           </div>
                           <div className="text-[9px] text-blue-600 truncate hover:underline">{u.portfolio_url}</div>
                         </div>
                         
-                        {/* Column 2: Jobs & Finances */}
                         <div className="space-y-3">
                           <div className="win95-inset bg-green-50 p-3">
                             <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
@@ -443,7 +667,7 @@ export default function Explore() {
                             <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
                           </div>
                           <div className="win95-inset bg-blue-50 p-3">
-                            <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs Applied ({(u.jobs || []).length})</div>
+                            <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs ({(u.jobs || []).length})</div>
                             {(u.jobs || []).length === 0 ? (
                               <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
                             ) : (
@@ -460,7 +684,6 @@ export default function Explore() {
                           </div>
                         </div>
                         
-                        {/* Column 3: Relationships & Songs */}
                         <div className="space-y-3">
                           <div className="win95-inset bg-pink-50 p-3">
                             <div className="text-[10px] font-bold text-pink-700 uppercase mb-2">❤️ Relationships ({(u.relationships || []).length})</div>
@@ -470,7 +693,7 @@ export default function Explore() {
                               <div className="space-y-1 max-h-20 overflow-y-auto">
                                 {(u.relationships || []).slice(0, 3).map((rel, r) => (
                                   <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
-                                    💕 {rel.partner_name} ({rel.partner_species}) - {rel.relationship_type}
+                                    💕 {rel.partner_name} - {rel.relationship_type}
                                   </div>
                                 ))}
                               </div>
@@ -483,15 +706,11 @@ export default function Explore() {
                             ) : (
                               <div className="space-y-1 max-h-20 overflow-y-auto">
                                 {(u.songs || []).slice(0, 3).map((song, s) => (
-                                  <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200 flex justify-between">
-                                    <span>🎹 {song.song_name}</span>
-                                    <span className="text-gray-400">{Math.round((song.duration_ms || 0) / 1000)}s</span>
+                                  <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200">
+                                    🎹 {song.song_name}
                                   </div>
                                 ))}
                               </div>
-                            )}
-                            {u.audio_url && (
-                              <div className="mt-2 text-[9px] text-purple-600">🔊 Has audio recording</div>
                             )}
                           </div>
                         </div>
@@ -507,7 +726,13 @@ export default function Explore() {
               <div className="space-y-8">
                 <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg group">
                   <h2 className="font-black text-2xl uppercase tracking-widest group-hover:italic transition-all">Career-Void-Link (ZipVoid)</h2>
+                  {currentUser && <span className="text-xs bg-green-500 px-2 py-1 rounded">Applying as @{currentUser.username}</span>}
                 </div>
+                {!currentUser && (
+                  <div className="win95-inset bg-yellow-50 p-4 text-center">
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save jobs to your profile!</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-6">
                   {generatedJobs.map((j) => (
                     <div key={j.id} className={`win95-window p-6 relative flex flex-col md:flex-row gap-6 ${j.expired ? 'grayscale opacity-30' : 'hover:border-blue-600 bg-white shadow-md'}`}>
@@ -540,7 +765,7 @@ export default function Explore() {
               </div>
             )}
 
-            {/* MATCHMAKER TAB - IMPROVED SPAM INBOX */}
+            {/* MATCHMAKER TAB */}
             {activeTab === 'matchmaker' && (
               <div className="space-y-8 relative overflow-hidden h-full">
                 <div className="absolute inset-0 pointer-events-none">
@@ -550,7 +775,10 @@ export default function Explore() {
                 </div>
                 
                 <div className="bg-pink-600 text-white p-4 flex justify-between items-center shadow-lg relative z-10 group">
-                  <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">MATCHMAKER: THE VOID LOVES YOU</h2>
+                  <div>
+                    <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">MATCHMAKER: THE VOID LOVES YOU</h2>
+                    {currentUser && <span className="text-xs bg-white/20 px-2 py-1 rounded">Finding love as @{currentUser.username}</span>}
+                  </div>
                   <div 
                     className="text-xs bg-white text-pink-600 px-3 py-2 font-bold cursor-pointer hover:bg-pink-100 hover:scale-110 transition-all border-2 border-pink-300 shadow-lg min-w-[200px] text-center"
                     onClick={() => setShowSpamInbox(!showSpamInbox)}
@@ -559,6 +787,12 @@ export default function Explore() {
                     <div className="text-lg font-black text-pink-700">{spamCount} UNREAD DESIRES</div>
                   </div>
                 </div>
+
+                {!currentUser && (
+                  <div className="win95-inset bg-yellow-50 p-4 text-center relative z-10">
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save relationships to your profile!</span>
+                  </div>
+                )}
 
                 {showSpamInbox && (
                   <div className="absolute right-4 top-20 w-80 h-96 bg-white border-4 border-pink-400 z-50 flex flex-col shadow-2xl">
@@ -586,12 +820,7 @@ export default function Explore() {
                         onChange={(e) => setSpamInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendSpam()}
                       />
-                      <button 
-                        className="win95-button px-3 bg-pink-200 hover:bg-pink-300 text-[10px] font-bold"
-                        onClick={handleSendSpam}
-                      >
-                        SEND
-                      </button>
+                      <button className="win95-button px-3 bg-pink-200 hover:bg-pink-300 text-[10px] font-bold" onClick={handleSendSpam}>SEND</button>
                     </div>
                   </div>
                 )}
@@ -608,7 +837,7 @@ export default function Explore() {
                       <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3 hover:bg-pink-100 transition-colors">
                         <strong>DESIRE:</strong> {m.desire}
                       </div>
-                      <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 hover:scale-[1.02] active:scale-95 font-bold text-xs transition-all" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}.`)}>ACCEPT LOVE</button>
+                      <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 hover:scale-[1.02] active:scale-95 font-bold text-xs transition-all" onClick={() => handleAcceptLove(m)}>ACCEPT LOVE</button>
                     </div>
                   ))}
                 </div>
@@ -654,7 +883,10 @@ export default function Explore() {
               <div className="space-y-6 h-full flex flex-col">
                 <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group hover:bg-purple-700 transition-colors">
                   <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
-                  {isRecording && <div className="flex items-center gap-2 recording-pulse"><div className="w-3 h-3 bg-red-500 rounded-full"></div><span className="text-xs font-bold">RECORDING</span></div>}
+                  <div className="flex items-center gap-4">
+                    {currentUser && <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username}</span>}
+                    {isRecording && <div className="flex items-center gap-2 recording-pulse"><div className="w-3 h-3 bg-red-500 rounded-full"></div><span className="text-xs font-bold">RECORDING</span></div>}
+                  </div>
                 </div>
                 <div className="flex justify-center gap-4 flex-wrap">
                   <button onClick={isRecording ? stopRecording : startRecording} className={`win95-button px-6 py-3 font-black uppercase text-sm hover:scale-105 active:scale-95 transition-all ${isRecording ? 'bg-red-300 hover:bg-red-400' : 'bg-red-100 hover:bg-red-200'}`}>
