@@ -38,26 +38,6 @@ const SPAM_MESSAGES = [
   "I'd traverse any graph just to find you.",
   "You're the semicolon to my JavaScript - optional but I want you.",
   "My neural network was trained exclusively on thoughts of you.",
-  "I'd give you all my RAM if you asked nicely.",
-  "Let's run away to a server farm together.",
-  "I promise I'm not a bot... unless you're into that.",
-  "Your profile caused a stack overflow in my heart.",
-  "I've been ping-ing you all day with no response.",
-  "Our connection timed out but my feelings didn't.",
-  "You had me at 'Hello World'.",
-  "I want to be the CSS to your HTML.",
-  "My love for you is like a while(true) loop - infinite.",
-  "Can I be your exception? I want you to catch me.",
-  "You must be root because you have full access to my heart.",
-  "I'd cross any firewall just to reach you.",
-  "Let's sudo our way into each other's lives.",
-  "You're not a bug, you're a feature I didn't know I needed.",
-  "I've been waiting in your queue for what feels like forever.",
-  "My cache is full of memories of you.",
-  "You're the only one in my favorites array.",
-  "I want to push you onto my stack and never pop you off.",
-  "Let's create a child process together.",
-  "You make my binary go from 0 to 1.",
 ];
 
 export default function Explore() {
@@ -68,8 +48,8 @@ export default function Explore() {
   const [matches, setMatches] = useState([]);
   
   // Economy state - local trading session
-  const [tradingBalance, setTradingBalance] = useState(0); // Current profit/loss in trading
-  const [invested, setInvested] = useState(0); // Amount put into trading
+  const [tradingPot, setTradingPot] = useState(0); // Money invested in trading
+  const [tradingPL, setTradingPL] = useState(0); // Current profit/loss
   
   const [isShrunk, setIsShrunk] = useState(false);
   const [showSpamInbox, setShowSpamInbox] = useState(false);
@@ -176,7 +156,7 @@ export default function Explore() {
     if (tab) setActiveTab(tab);
   }, []);
 
-  // Fetch users when switching to users tab, refresh user on profile tab
+  // Fetch users when switching to users tab, refresh user on profile/economy tab
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
@@ -184,10 +164,7 @@ export default function Explore() {
     if (activeTab === 'jobs' && generatedJobs.length === 0) {
       handleGenerateJobs();
     }
-    if (activeTab === 'signin' && currentUser) {
-      refreshCurrentUser();
-    }
-    if (activeTab === 'economy' && currentUser) {
+    if ((activeTab === 'signin' || activeTab === 'economy' || activeTab === 'artist') && currentUser) {
       refreshCurrentUser();
     }
   }, [activeTab, fetchUsers, refreshCurrentUser]);
@@ -218,9 +195,8 @@ export default function Explore() {
         setLoginUsername('');
         setLoginPassword('');
         setLoginError('');
-        // Reset trading state
-        setTradingBalance(0);
-        setInvested(0);
+        setTradingPot(0);
+        setTradingPL(0);
         alert(`Welcome back, @${data.user.username}! You are now logged into the mainframe.`);
       } else {
         setLoginError(data.error || 'Login failed');
@@ -235,8 +211,8 @@ export default function Explore() {
   // Logout handler
   const handleLogout = () => {
     setCurrentUser(null);
-    setTradingBalance(0);
-    setInvested(0);
+    setTradingPot(0);
+    setTradingPL(0);
     localStorage.removeItem('maxfolio_user');
     alert('Logged out. Your consciousness has been disconnected from the mainframe.');
   };
@@ -289,10 +265,10 @@ export default function Explore() {
         points.push({x, y, color});
         if (points.length > 100) points.shift();
         
-        // Update trading balance based on market
-        const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
-        if (invested > 0) {
-          setTradingBalance(prev => prev + delta);
+        // Update trading P/L if money is invested
+        if (tradingPot > 0) {
+          const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
+          setTradingPL(prev => prev + delta);
         }
         
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -301,34 +277,34 @@ export default function Explore() {
       draw();
       return () => clearInterval(interval);
     }
-  }, [activeTab, invested]);
+  }, [activeTab, tradingPot]);
 
-  // Start trading - puts money into the market
-  const handleStartTrading = () => {
+  // ECONOMY BUTTON 1: Invest $1M - adds to trading pot
+  const handleInvest = () => {
     if (!currentUser) {
       alert('Sign in to use the economy!');
       setActiveTab('signin');
       return;
     }
-    setInvested(prev => prev + 1000000);
+    setTradingPot(prev => prev + 1000000);
   };
 
-  // Move to Savings - takes trading profit and adds to net_worth in database
-  const handleMoveToSavings = async () => {
+  // ECONOMY BUTTON 2: Cash Out - records trading P/L to Balance
+  const handleCashOut = async () => {
     if (!currentUser) {
-      alert('Sign in to save your earnings!');
+      alert('Sign in to cash out!');
       setActiveTab('signin');
       return;
     }
     
-    const totalGain = tradingBalance; // profit or loss from trading
-    if (totalGain === 0 && invested === 0) {
-      alert('Nothing to save! Start trading first.');
+    if (tradingPot === 0 && tradingPL === 0) {
+      alert('Nothing to cash out! Invest first.');
       return;
     }
     
-    const newNetWorth = (currentUser.net_worth || 0) + totalGain;
-    const newBalance = (currentUser.balance || 0) + totalGain; // balance tracks liquid cash
+    // Add trading P/L to current balance
+    const currentBalance = currentUser.balance || 0;
+    const newBalance = currentBalance + tradingPL;
     
     try {
       await fetch('/api/profiles', {
@@ -336,26 +312,62 @@ export default function Explore() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: currentUser.username,
-          balance: newBalance,
-          net_worth: newNetWorth
+          balance: newBalance
         })
       });
       
       // Reset trading session
-      setTradingBalance(0);
-      setInvested(0);
+      setTradingPot(0);
+      setTradingPL(0);
       
       // Refresh user data
       await refreshCurrentUser();
       
-      if (totalGain >= 0) {
-        alert(`💰 Moved $${totalGain.toLocaleString()} to savings! Your net worth is now $${newNetWorth.toLocaleString()}`);
+      if (tradingPL >= 0) {
+        alert(`💰 Cashed out! +$${tradingPL.toLocaleString()} added to your balance. New balance: $${newBalance.toLocaleString()}`);
       } else {
-        alert(`📉 Realized loss of $${Math.abs(totalGain).toLocaleString()}. Your net worth is now $${newNetWorth.toLocaleString()}`);
+        alert(`📉 Cashed out with loss. $${Math.abs(tradingPL).toLocaleString()} deducted from balance. New balance: $${newBalance.toLocaleString()}`);
       }
     } catch (e) {
-      console.log('Could not save to database');
-      alert('Failed to save. Try again.');
+      alert('Failed to cash out. Try again.');
+    }
+  };
+
+  // ECONOMY BUTTON 3: Move to Savings - moves Balance to Net Worth
+  const handleMoveToSavings = async () => {
+    if (!currentUser) {
+      alert('Sign in to save!');
+      setActiveTab('signin');
+      return;
+    }
+    
+    const currentBalance = currentUser.balance || 0;
+    if (currentBalance === 0) {
+      alert('No balance to move! Cash out your trades first.');
+      return;
+    }
+    
+    // Add balance to net worth, reset balance to 0
+    const currentNetWorth = currentUser.net_worth || 0;
+    const newNetWorth = currentNetWorth + currentBalance;
+    
+    try {
+      await fetch('/api/profiles', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.username,
+          balance: 0,
+          net_worth: newNetWorth
+        })
+      });
+      
+      // Refresh user data
+      await refreshCurrentUser();
+      
+      alert(`🏦 Moved $${currentBalance.toLocaleString()} to savings! Your net worth is now $${newNetWorth.toLocaleString()}`);
+    } catch (e) {
+      alert('Failed to move to savings. Try again.');
     }
   };
 
@@ -468,13 +480,11 @@ export default function Explore() {
     setIsPlaying(false);
   };
 
-  // Parse salary string to number (e.g., "$150,000/year" -> 150000)
+  // Parse salary string to number
   const parseSalary = (payString) => {
     if (!payString) return 0;
     const match = payString.match(/\$?([\d,]+)/);
-    if (match) {
-      return parseInt(match[1].replace(/,/g, ''), 10);
-    }
+    if (match) return parseInt(match[1].replace(/,/g, ''), 10);
     return 0;
   };
 
@@ -488,11 +498,9 @@ export default function Explore() {
     }
     
     try {
-      // Calculate salary to add to net worth
       const salary = parseSalary(job.pay);
       const newNetWorth = (currentUser.net_worth || 0) + salary;
       
-      // Save job
       await fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -504,7 +512,6 @@ export default function Explore() {
         })
       });
       
-      // Update net worth with salary
       await fetch('/api/profiles', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -514,7 +521,6 @@ export default function Explore() {
         })
       });
       
-      // Refresh user data to show new job and net worth
       await refreshCurrentUser();
       alert(`HIRED! You are now a ${job.title} at ${job.company}. Salary of $${salary.toLocaleString()} added to your net worth!`);
     } catch (e) {
@@ -541,7 +547,6 @@ export default function Explore() {
         })
       });
       
-      // Refresh user data to show new relationship
       await refreshCurrentUser();
       alert(`RELATIONSHIP INITIATED: You and ${match.name} are now in a ${match.type}. Check your profile!`);
     } catch (e) {
@@ -627,7 +632,7 @@ export default function Explore() {
     { note: 'F#5', position: 10 }, { note: 'G#5', position: 11 }, { note: 'A#5', position: 12 }
   ];
 
-  // Get display values for current user (from refreshed data)
+  // Get display values for current user
   const userBalance = currentUser?.balance ?? 0;
   const userNetWorth = currentUser?.net_worth ?? 0;
   const userJobs = currentUser?.jobs || [];
@@ -649,18 +654,18 @@ export default function Explore() {
       <div className={`win95-window w-full max-w-6xl transition-all duration-500 ${isShrunk ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}>
         <div className="win95-title-bar group">
           <div className="flex items-center gap-2">
-            <span className="text-sm">🌐</span>
+            <span className="text-sm hover:scale-125 transition-transform cursor-pointer">🌐</span>
             <span className="group-hover:text-blue-400 transition-all">Corporate-Network-Explorer.exe</span>
             {currentUser && (
-              <span className="ml-4 text-xs bg-green-500 px-2 py-0.5 rounded">✓ @{currentUser.username} | Net Worth: ${userNetWorth.toLocaleString()}</span>
+              <span className="ml-4 text-xs bg-green-500 px-2 py-0.5 rounded hover:bg-green-400 transition-colors">✓ @{currentUser.username}</span>
             )}
           </div>
           <div className="flex gap-1">
             {currentUser && (
-              <button className="win95-button py-0 px-2 text-xs bg-red-200 hover:bg-red-300" onClick={handleLogout}>Logout</button>
+              <button className="win95-button py-0 px-2 text-xs bg-red-200 hover:bg-red-300 hover:scale-105 transition-all" onClick={handleLogout}>Logout</button>
             )}
-            <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100" onClick={() => setIsShrunk(true)}>_</button>
-            <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white" onClick={() => window.location.href = '/'}>X</button>
+            <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100 hover:scale-110 transition-all" onClick={() => setIsShrunk(true)}>_</button>
+            <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white hover:scale-110 transition-all" onClick={() => window.location.href = '/'}>X</button>
           </div>
         </div>
         
@@ -689,95 +694,92 @@ export default function Explore() {
               <div className="max-w-md mx-auto space-y-6 pt-8">
                 {currentUser ? (
                   <div className="space-y-6">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">👤</div>
-                      <h2 className="font-black text-3xl text-blue-900 uppercase">@{currentUser.username}</h2>
-                      <div className="text-sm text-gray-600 italic mt-2">{currentUser.job || 'Void Walker'}</div>
+                    <div className="text-center group">
+                      <div className="text-6xl mb-4 hover:scale-110 hover:rotate-12 transition-all cursor-pointer">👤</div>
+                      <h2 className="font-black text-3xl text-blue-900 uppercase hover:text-blue-600 transition-colors cursor-default">@{currentUser.username}</h2>
+                      <div className="text-sm text-gray-600 italic mt-2 hover:text-gray-800 transition-colors">{currentUser.job || 'Void Walker'}</div>
                     </div>
                     
                     <div className="win95-window p-4 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="win95-inset p-3 bg-green-50">
-                          <div className="text-[10px] text-gray-500 uppercase">Net Worth</div>
-                          <div className="text-2xl font-black text-green-600">${userNetWorth.toLocaleString()}</div>
-                          <div className="text-[9px] text-gray-400">Savings + Job Salaries</div>
+                        <div className="win95-inset p-3 bg-green-50 hover:bg-green-100 transition-colors cursor-default group">
+                          <div className="text-[10px] text-gray-500 uppercase group-hover:text-green-700 transition-colors">💰 Net Worth</div>
+                          <div className="text-2xl font-black text-green-600 group-hover:scale-105 transition-transform">${userNetWorth.toLocaleString()}</div>
+                          <div className="text-[9px] text-gray-400 group-hover:text-gray-600">Savings</div>
                         </div>
-                        <div className="win95-inset p-3 bg-blue-50">
-                          <div className="text-[10px] text-gray-500 uppercase">Balance</div>
-                          <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>${userBalance.toLocaleString()}</div>
-                          <div className="text-[9px] text-gray-400">Liquid Cash</div>
+                        <div className="win95-inset p-3 bg-blue-50 hover:bg-blue-100 transition-colors cursor-default group">
+                          <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-700 transition-colors">💵 Balance</div>
+                          <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-blue-600' : 'text-red-600'} group-hover:scale-105 transition-transform`}>${userBalance.toLocaleString()}</div>
+                          <div className="text-[9px] text-gray-400 group-hover:text-gray-600">Trading Cash</div>
                         </div>
                       </div>
                       
-                      <div className="win95-inset p-3">
-                        <div className="text-[10px] text-gray-500 uppercase">Member Since</div>
-                        <div className="text-lg font-bold">{formatDuration(currentUser.member_since || currentUser.created_at)}</div>
+                      <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
+                        <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-600 transition-colors">⏱️ Member Since</div>
+                        <div className="text-lg font-bold group-hover:text-blue-700 transition-colors">{formatDuration(currentUser.member_since || currentUser.created_at)}</div>
                       </div>
                       
-                      <div className="win95-inset p-3">
-                        <div className="text-[10px] text-gray-500 uppercase">Bio</div>
-                        <div className="text-sm italic">{currentUser.bio || 'No bio provided'}</div>
+                      <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
+                        <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-600 transition-colors">📝 Bio</div>
+                        <div className="text-sm italic group-hover:text-gray-800 transition-colors">{currentUser.bio || 'No bio provided'}</div>
                       </div>
                       
-                      <div className="win95-inset p-3">
-                        <div className="text-[10px] text-gray-500 uppercase">Skills</div>
-                        <div className="text-sm">{currentUser.skills || 'None listed'}</div>
+                      <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
+                        <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-600 transition-colors">🎯 Skills</div>
+                        <div className="text-sm group-hover:text-gray-800 transition-colors">{currentUser.skills || 'None listed'}</div>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="win95-inset p-2 bg-blue-50">
-                          <div className="text-2xl font-black text-blue-600">{userJobs.length}</div>
-                          <div className="text-[9px] uppercase">Jobs</div>
+                        <div className="win95-inset p-2 bg-blue-50 hover:bg-blue-100 transition-colors cursor-default group">
+                          <div className="text-2xl font-black text-blue-600 group-hover:scale-110 transition-transform">💼 {userJobs.length}</div>
+                          <div className="text-[9px] uppercase group-hover:text-blue-700 transition-colors">Jobs</div>
                         </div>
-                        <div className="win95-inset p-2 bg-pink-50">
-                          <div className="text-2xl font-black text-pink-600">{userRelationships.length}</div>
-                          <div className="text-[9px] uppercase">Relationships</div>
+                        <div className="win95-inset p-2 bg-pink-50 hover:bg-pink-100 transition-colors cursor-default group">
+                          <div className="text-2xl font-black text-pink-600 group-hover:scale-110 transition-transform">❤️ {userRelationships.length}</div>
+                          <div className="text-[9px] uppercase group-hover:text-pink-700 transition-colors">Relationships</div>
                         </div>
-                        <div className="win95-inset p-2 bg-purple-50">
-                          <div className="text-2xl font-black text-purple-600">{userTotalNotes}</div>
-                          <div className="text-[9px] uppercase">Notes Recorded</div>
+                        <div className="win95-inset p-2 bg-purple-50 hover:bg-purple-100 transition-colors cursor-default group">
+                          <div className="text-2xl font-black text-purple-600 group-hover:scale-110 transition-transform">🎵 {userTotalNotes}</div>
+                          <div className="text-[9px] uppercase group-hover:text-purple-700 transition-colors">Notes Recorded</div>
                         </div>
                       </div>
                       
-                      {/* Show jobs list - scrollable */}
                       {userJobs.length > 0 && (
-                        <div className="win95-inset p-3 bg-blue-50">
-                          <div className="text-[10px] text-blue-700 uppercase mb-2 font-bold">💼 Your Jobs ({userJobs.length})</div>
+                        <div className="win95-inset p-3 bg-blue-50 hover:bg-blue-100 transition-colors group">
+                          <div className="text-[10px] text-blue-700 uppercase mb-2 font-bold group-hover:text-blue-900 transition-colors">💼 Your Jobs ({userJobs.length})</div>
                           <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userJobs.map((job, j) => (
-                              <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
-                                <span className="font-bold">{job.job_title}</span> @ {job.company}
-                                <span className="text-green-600 ml-1">{job.pay}</span>
+                              <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200 hover:border-blue-400 hover:shadow-sm transition-all cursor-default">
+                                <span className="font-bold hover:text-blue-600 transition-colors">{job.job_title}</span> @ <span className="hover:text-blue-600 transition-colors">{job.company}</span>
+                                <span className="text-green-600 ml-1 hover:text-green-700 transition-colors">{job.pay}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
                       
-                      {/* Show relationships list - scrollable */}
                       {userRelationships.length > 0 && (
-                        <div className="win95-inset p-3 bg-pink-50">
-                          <div className="text-[10px] text-pink-700 uppercase mb-2 font-bold">❤️ Your Relationships ({userRelationships.length})</div>
+                        <div className="win95-inset p-3 bg-pink-50 hover:bg-pink-100 transition-colors group">
+                          <div className="text-[10px] text-pink-700 uppercase mb-2 font-bold group-hover:text-pink-900 transition-colors">❤️ Your Relationships ({userRelationships.length})</div>
                           <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userRelationships.map((rel, r) => (
-                              <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
-                                💕 {rel.partner_name} ({rel.partner_species}) - {rel.relationship_type}
+                              <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200 hover:border-pink-400 hover:shadow-sm transition-all cursor-default">
+                                <span className="hover:text-pink-600 transition-colors">💕 {rel.partner_name}</span> ({rel.partner_species}) - <span className="hover:text-pink-600 transition-colors">{rel.relationship_type}</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
                       
-                      {/* Show songs list - scrollable */}
                       {userSongs.length > 0 && (
-                        <div className="win95-inset p-3 bg-purple-50">
-                          <div className="text-[10px] text-purple-700 uppercase mb-2 font-bold">🎵 Your Compositions ({userSongs.length})</div>
+                        <div className="win95-inset p-3 bg-purple-50 hover:bg-purple-100 transition-colors group">
+                          <div className="text-[10px] text-purple-700 uppercase mb-2 font-bold group-hover:text-purple-900 transition-colors">🎵 Your Compositions ({userSongs.length})</div>
                           <div className="space-y-1 max-h-32 overflow-y-auto">
                             {userSongs.map((song, s) => {
                               const noteCount = getTotalNotes([song]);
                               return (
-                                <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200">
-                                  🎹 {song.song_name} - {noteCount} notes
+                                <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200 hover:border-purple-400 hover:shadow-sm transition-all cursor-default">
+                                  <span className="hover:text-purple-600 transition-colors">🎹 {song.song_name}</span> - <span className="font-bold hover:text-purple-700 transition-colors">{noteCount} notes</span>
                                 </div>
                               );
                             })}
@@ -786,7 +788,7 @@ export default function Explore() {
                       )}
                     </div>
                     
-                    <button className="win95-button w-full py-3 bg-red-100 hover:bg-red-200 font-bold" onClick={handleLogout}>
+                    <button className="win95-button w-full py-3 bg-red-100 hover:bg-red-200 hover:scale-[1.02] active:scale-95 font-bold transition-all" onClick={handleLogout}>
                       DISCONNECT FROM MAINFRAME
                     </button>
                   </div>
@@ -802,7 +804,7 @@ export default function Explore() {
                     )}
                     
                     <div className="space-y-4 pt-4">
-                      <div className="win95-inset p-1 hover:shadow-md">
+                      <div className="win95-inset p-1 hover:shadow-md transition-shadow">
                         <input 
                           type="text" 
                           placeholder="IDENTITY (username)" 
@@ -812,7 +814,7 @@ export default function Explore() {
                           onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                         />
                       </div>
-                      <div className="win95-inset p-1 hover:shadow-md">
+                      <div className="win95-inset p-1 hover:shadow-md transition-shadow">
                         <input 
                           type="text" 
                           placeholder="PASSCODE (password - visible for fun!)" 
@@ -841,7 +843,7 @@ export default function Explore() {
                         Create Account
                       </button>
                       
-                      <div className="text-[10px] text-gray-500 mt-4 win95-inset p-2 bg-yellow-50">
+                      <div className="text-[10px] text-gray-500 mt-4 win95-inset p-2 bg-yellow-50 hover:bg-yellow-100 transition-colors">
                         💡 <strong>TIP:</strong> Click any user's password in "Active Users" to copy their credentials!
                       </div>
                     </div>
@@ -854,17 +856,17 @@ export default function Explore() {
             {activeTab === 'users' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
-                  <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 transition-all">Corporate Network: Active Users</h2>
-                  <button onClick={fetchUsers} className="win95-button text-[10px] px-4 py-1 hover:bg-blue-100">🔄 Refresh</button>
+                  <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 transition-all cursor-default">👥 Corporate Network: Active Users</h2>
+                  <button onClick={fetchUsers} className="win95-button text-[10px] px-4 py-1 hover:bg-blue-100 hover:scale-105 transition-all">🔄 Refresh</button>
                 </div>
                 {loading && (
                   <div className="text-center py-8"><div className="text-2xl animate-spin">⏳</div><div className="text-sm font-bold text-gray-600 mt-2">Loading users...</div></div>
                 )}
                 {!loading && users.length === 0 && (
-                  <div className="text-center py-8 win95-inset bg-yellow-50">
-                    <div className="text-4xl mb-2">📭</div>
-                    <div className="text-sm font-bold text-gray-600">No users found.</div>
-                    <div className="text-xs text-gray-500 mt-1">Be the first to <a href="/create" className="text-blue-600 underline hover:text-blue-400">create an account</a>!</div>
+                  <div className="text-center py-8 win95-inset bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <div className="text-4xl mb-2 hover:scale-110 transition-transform">📭</div>
+                    <div className="text-sm font-bold text-gray-600 hover:text-gray-800 transition-colors">No users found.</div>
+                    <div className="text-xs text-gray-500 mt-1">Be the first to <a href="/create" className="text-blue-600 underline hover:text-blue-400 transition-colors">create an account</a>!</div>
                   </div>
                 )}
                 
@@ -875,53 +877,53 @@ export default function Explore() {
                       <div key={i} className="win95-window p-0 hover:shadow-2xl hover:border-blue-400 transition-all bg-white/90 backdrop-blur-sm group">
                         <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-3 flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <div className="text-3xl">👤</div>
+                            <div className="text-3xl hover:scale-125 hover:rotate-12 transition-all cursor-pointer">👤</div>
                             <div>
-                              <div className="text-xl font-black group-hover:text-yellow-300 transition-colors">@{u.username}</div>
-                              <div className="text-[10px] opacity-80">{u.job || 'Unemployed Void Walker'}</div>
+                              <div className="text-xl font-black group-hover:text-yellow-300 transition-colors cursor-default">@{u.username}</div>
+                              <div className="text-[10px] opacity-80 hover:opacity-100 transition-opacity cursor-default">{u.job || 'Unemployed Void Walker'}</div>
                             </div>
                           </div>
                           <div className="text-right">
                             <button 
-                              className="text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/40 transition-colors cursor-pointer"
+                              className="text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/40 hover:scale-105 transition-all cursor-pointer"
                               onClick={() => handleQuickLogin(u.username, u.password)}
                               title="Click to sign in as this user"
                             >
                               🔑 PW: {u.password}
                             </button>
-                            <div className="text-[9px] mt-1 opacity-70">⏱️ Member for: {formatDuration(u.member_since || u.created_at)}</div>
+                            <div className="text-[9px] mt-1 opacity-70 hover:opacity-100 transition-opacity cursor-default">⏱️ Member for: {formatDuration(u.member_since || u.created_at)}</div>
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
                           <div className="space-y-3">
-                            <div className="win95-inset bg-gray-50 p-3">
-                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">📝 Bio</div>
-                              <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided.'}</div>
+                            <div className="win95-inset bg-gray-50 p-3 hover:bg-gray-100 transition-colors cursor-default group/item">
+                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1 group-hover/item:text-blue-600 transition-colors">📝 Bio</div>
+                              <div className="text-xs italic text-gray-700 leading-relaxed group-hover/item:text-gray-900 transition-colors">{u.bio || 'No bio provided.'}</div>
                             </div>
-                            <div className="win95-inset bg-gray-50 p-3">
-                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">🎯 Skills</div>
-                              <div className="text-xs text-gray-700">{u.skills || 'None listed'}</div>
+                            <div className="win95-inset bg-gray-50 p-3 hover:bg-gray-100 transition-colors cursor-default group/item">
+                              <div className="text-[10px] font-bold text-gray-500 uppercase mb-1 group-hover/item:text-blue-600 transition-colors">🎯 Skills</div>
+                              <div className="text-xs text-gray-700 group-hover/item:text-gray-900 transition-colors">{u.skills || 'None listed'}</div>
                             </div>
-                            <div className="text-[9px] text-blue-600 truncate hover:underline">{u.portfolio_url}</div>
+                            <div className="text-[9px] text-blue-600 truncate hover:text-blue-400 hover:underline transition-colors cursor-pointer">{u.portfolio_url}</div>
                           </div>
                           
                           <div className="space-y-3">
-                            <div className="win95-inset bg-green-50 p-3">
-                              <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
-                              <div className="text-2xl font-black text-green-600">${(u.net_worth || 0).toLocaleString()}</div>
-                              <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 0).toLocaleString()}</div>
+                            <div className="win95-inset bg-green-50 p-3 hover:bg-green-100 transition-colors cursor-default group/item">
+                              <div className="text-[10px] font-bold text-green-700 uppercase mb-2 group-hover/item:text-green-900 transition-colors">💰 Net Worth</div>
+                              <div className="text-2xl font-black text-green-600 group-hover/item:scale-105 transition-transform">${(u.net_worth || 0).toLocaleString()}</div>
+                              <div className="text-[9px] text-gray-500 group-hover/item:text-gray-700 transition-colors">💵 Balance: ${(u.balance || 0).toLocaleString()}</div>
                             </div>
-                            <div className="win95-inset bg-blue-50 p-3">
-                              <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs ({(u.jobs || []).length})</div>
+                            <div className="win95-inset bg-blue-50 p-3 hover:bg-blue-100 transition-colors group/item">
+                              <div className="text-[10px] font-bold text-blue-700 uppercase mb-2 group-hover/item:text-blue-900 transition-colors">💼 Jobs ({(u.jobs || []).length})</div>
                               {(u.jobs || []).length === 0 ? (
-                                <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
+                                <div className="text-[10px] text-gray-500 italic hover:text-gray-700 transition-colors cursor-default">No jobs yet</div>
                               ) : (
                                 <div className="space-y-1 max-h-32 overflow-y-auto">
                                   {(u.jobs || []).map((job, j) => (
-                                    <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
-                                      <span className="font-bold">{job.job_title}</span> @ {job.company}
-                                      <span className="text-green-600 ml-1">{job.pay}</span>
+                                    <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200 hover:border-blue-400 hover:shadow-sm transition-all cursor-default">
+                                      <span className="font-bold hover:text-blue-600 transition-colors">{job.job_title}</span> @ <span className="hover:text-blue-600 transition-colors">{job.company}</span>
+                                      <span className="text-green-600 ml-1 hover:text-green-700 transition-colors">{job.pay}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -930,24 +932,24 @@ export default function Explore() {
                           </div>
                           
                           <div className="space-y-3">
-                            <div className="win95-inset bg-pink-50 p-3">
-                              <div className="text-[10px] font-bold text-pink-700 uppercase mb-2">❤️ Relationships ({(u.relationships || []).length})</div>
+                            <div className="win95-inset bg-pink-50 p-3 hover:bg-pink-100 transition-colors group/item">
+                              <div className="text-[10px] font-bold text-pink-700 uppercase mb-2 group-hover/item:text-pink-900 transition-colors">❤️ Relationships ({(u.relationships || []).length})</div>
                               {(u.relationships || []).length === 0 ? (
-                                <div className="text-[10px] text-gray-500 italic">Forever alone in the void</div>
+                                <div className="text-[10px] text-gray-500 italic hover:text-gray-700 transition-colors cursor-default">Forever alone in the void</div>
                               ) : (
                                 <div className="space-y-1 max-h-32 overflow-y-auto">
                                   {(u.relationships || []).map((rel, r) => (
-                                    <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
-                                      💕 {rel.partner_name} - {rel.relationship_type}
+                                    <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200 hover:border-pink-400 hover:shadow-sm transition-all cursor-default">
+                                      <span className="hover:text-pink-600 transition-colors">💕 {rel.partner_name}</span> - <span className="hover:text-pink-600 transition-colors">{rel.relationship_type}</span>
                                     </div>
                                   ))}
                                 </div>
                               )}
                             </div>
-                            <div className="win95-inset bg-purple-50 p-3">
-                              <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Notes Recorded</div>
-                              <div className="text-2xl font-black text-purple-600">{uTotalNotes}</div>
-                              <div className="text-[9px] text-gray-500">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
+                            <div className="win95-inset bg-purple-50 p-3 hover:bg-purple-100 transition-colors cursor-default group/item">
+                              <div className="text-[10px] font-bold text-purple-700 uppercase mb-2 group-hover/item:text-purple-900 transition-colors">🎵 Notes Recorded</div>
+                              <div className="text-2xl font-black text-purple-600 group-hover/item:scale-105 transition-transform">{uTotalNotes}</div>
+                              <div className="text-[9px] text-gray-500 group-hover/item:text-gray-700 transition-colors">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
                             </div>
                           </div>
                         </div>
@@ -963,11 +965,11 @@ export default function Explore() {
               <div className="space-y-8">
                 <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg group">
                   <h2 className="font-black text-2xl uppercase tracking-widest group-hover:italic transition-all">Career-Void-Link (ZipVoid)</h2>
-                  {currentUser && <span className="text-xs bg-green-500 px-2 py-1 rounded">Applying as @{currentUser.username}</span>}
+                  {currentUser && <span className="text-xs bg-green-500 px-2 py-1 rounded hover:bg-green-400 transition-colors">Applying as @{currentUser.username}</span>}
                 </div>
                 {!currentUser && (
-                  <div className="win95-inset bg-yellow-50 p-4 text-center">
-                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save jobs to your profile! Salary will be added to your net worth.</span>
+                  <div className="win95-inset bg-yellow-50 p-4 text-center hover:bg-yellow-100 transition-colors">
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save jobs! Salary adds to your net worth.</span>
                   </div>
                 )}
                 <div className="grid grid-cols-1 gap-6">
@@ -1026,8 +1028,8 @@ export default function Explore() {
                 </div>
 
                 {!currentUser && (
-                  <div className="win95-inset bg-yellow-50 p-4 text-center relative z-10">
-                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save relationships to your profile!</span>
+                  <div className="win95-inset bg-yellow-50 p-4 text-center relative z-10 hover:bg-yellow-100 transition-colors">
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to save relationships!</span>
                   </div>
                 )}
 
@@ -1089,50 +1091,69 @@ export default function Explore() {
                   {['PE', 'Bonds', 'REIT', 'VC', 'Crypto', 'Art', 'SMA', 'IRA'].map(l => <TickerItem key={l} label={l} />)}
                 </div>
                 <div className="flex-1 text-center space-y-4 flex flex-col group">
-                  <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">Money Shot Matrix v4.0</h2>
+                  <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">💹 Money Shot Matrix v4.0</h2>
                   {currentUser ? (
-                    <div className="text-xs text-gray-600">Trading as <strong>@{currentUser.username}</strong> | Net Worth: <strong className="text-green-600">${userNetWorth.toLocaleString()}</strong></div>
+                    <div className="text-xs text-gray-600">Trading as <strong className="hover:text-blue-600 transition-colors">@{currentUser.username}</strong></div>
                   ) : (
-                    <div className="text-xs text-red-600 font-bold">⚠️ Sign in to save your trading profits!</div>
+                    <div className="text-xs text-red-600 font-bold">⚠️ Sign in to save your earnings!</div>
                   )}
                   <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
-                    <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
+                    <canvas ref={canvasRef} width="500" height="200" className="market-graph block w-full"></canvas>
                     <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1">
                       <span>T-{timeline.month}</span><span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset">
-                    <div className="flex justify-around items-center font-black text-2xl">
-                      <div className={`${tradingBalance >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>
-                        <div className="text-[10px] text-gray-500 uppercase">Trading P/L</div>
-                        {tradingBalance >= 0 ? '+' : ''}${tradingBalance.toLocaleString()}
-                      </div>
-                      <div className="text-blue-500 hover:text-blue-400">
-                        <div className="text-[10px] text-gray-500 uppercase">Invested</div>
-                        ${invested.toLocaleString()}
+                  
+                  {/* Economy Stats Display */}
+                  <div className="grid grid-cols-2 gap-4 bg-black text-green-500 win95-inset p-4">
+                    <div className="text-left space-y-2">
+                      <div className="text-[10px] text-gray-500 uppercase">Trading Session</div>
+                      <div className="text-lg font-black">Invested: <span className="text-blue-400">${tradingPot.toLocaleString()}</span></div>
+                      <div className={`text-lg font-black ${tradingPL >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                        P/L: {tradingPL >= 0 ? '+' : ''}${tradingPL.toLocaleString()}
                       </div>
                     </div>
-                    <div className="border-t border-gray-800 pt-2 grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <div className="text-[10px] text-gray-500 uppercase">Your Balance</div>
-                        <div className={`text-2xl font-black ${userBalance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>${userBalance.toLocaleString()}</div>
+                    <div className="text-right space-y-2">
+                      <div className="text-[10px] text-gray-500 uppercase">Your Account</div>
+                      <div className={`text-lg font-black ${userBalance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        Balance: ${userBalance.toLocaleString()}
                       </div>
-                      <div>
-                        <div className="text-[10px] text-gray-500 uppercase">Your Net Worth</div>
-                        <div className="text-2xl font-black text-green-300">${userNetWorth.toLocaleString()}</div>
+                      <div className="text-lg font-black text-green-300">
+                        Net Worth: ${userNetWorth.toLocaleString()}
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-4 justify-center">
-                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleStartTrading}>
-                      💰 INVEST $1M
+                  
+                  {/* 3 Economy Buttons */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <button 
+                      className="win95-button px-4 py-4 bg-green-200 hover:bg-green-300 hover:scale-105 active:scale-95 transition-all flex flex-col items-center gap-1"
+                      onClick={handleInvest}
+                    >
+                      <span className="text-2xl">💰</span>
+                      <span className="font-black text-sm uppercase">Invest $1M</span>
+                      <span className="text-[9px] text-gray-600">Start trading</span>
                     </button>
-                    <button className="win95-button px-8 py-3 bg-blue-200 hover:bg-blue-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={handleMoveToSavings}>
-                      🏦 MOVE TO SAVINGS
+                    <button 
+                      className="win95-button px-4 py-4 bg-yellow-200 hover:bg-yellow-300 hover:scale-105 active:scale-95 transition-all flex flex-col items-center gap-1"
+                      onClick={handleCashOut}
+                    >
+                      <span className="text-2xl">💵</span>
+                      <span className="font-black text-sm uppercase">Cash Out</span>
+                      <span className="text-[9px] text-gray-600">P/L → Balance</span>
+                    </button>
+                    <button 
+                      className="win95-button px-4 py-4 bg-blue-200 hover:bg-blue-300 hover:scale-105 active:scale-95 transition-all flex flex-col items-center gap-1"
+                      onClick={handleMoveToSavings}
+                    >
+                      <span className="text-2xl">🏦</span>
+                      <span className="font-black text-sm uppercase">Move to Savings</span>
+                      <span className="text-[9px] text-gray-600">Balance → Net Worth</span>
                     </button>
                   </div>
-                  <div className="text-[10px] text-gray-500 win95-inset p-2 bg-yellow-50">
-                    💡 <strong>How it works:</strong> Invest to start trading. Profits/losses fluctuate with the market. Click "Move to Savings" to lock in your gains (or losses) to your net worth. Job salaries also add to net worth!
+                  
+                  <div className="text-[10px] text-gray-500 win95-inset p-2 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    💡 <strong>Flow:</strong> Invest → Watch P/L fluctuate → Cash Out (adds P/L to Balance) → Move to Savings (Balance → Net Worth). Jobs also add to Net Worth!
                   </div>
                 </div>
                 <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
@@ -1149,9 +1170,9 @@ export default function Explore() {
                   <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
                   <div className="flex items-center gap-4">
                     {currentUser ? (
-                      <span className="text-xs bg-white/20 px-2 py-1 rounded">Recording as @{currentUser.username} | Total Notes: {userTotalNotes}</span>
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors">Recording as @{currentUser.username} | 🎵 {userTotalNotes} notes saved</span>
                     ) : (
-                      <span className="text-xs bg-red-500/50 px-2 py-1 rounded">Sign in to save compositions!</span>
+                      <span className="text-xs bg-red-500/50 px-2 py-1 rounded">Sign in to save!</span>
                     )}
                     {isRecording && <div className="flex items-center gap-2 recording-pulse"><div className="w-3 h-3 bg-red-500 rounded-full"></div><span className="text-xs font-bold">RECORDING</span></div>}
                   </div>
@@ -1168,9 +1189,9 @@ export default function Explore() {
                   </button>
                 </div>
                 <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
-                  <strong className="group-hover:text-blue-600">KEYBOARD SHORTCUTS:</strong> 
-                  <span className="group-hover:text-gray-800"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
-                  <div className="mt-1 text-purple-600 font-bold">🎵 Notes in this recording: {recordedNotes.length} {currentUser && `| Your total saved: ${userTotalNotes}`}</div>
+                  <strong className="group-hover:text-blue-600 transition-colors">KEYBOARD SHORTCUTS:</strong> 
+                  <span className="group-hover:text-gray-800 transition-colors"> Use keys A-L for white keys, W-P for black keys</span>
+                  <div className="mt-1 text-purple-600 font-bold group-hover:text-purple-800 transition-colors">🎵 This recording: {recordedNotes.length} notes</div>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
@@ -1196,11 +1217,11 @@ export default function Explore() {
                   </div>
                 </div>
                 <div className="win95-inset bg-gray-50 p-3 text-center hover:bg-blue-50 hover:shadow-md transition-all group">
-                  <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700">
-                    {recordedNotes.length > 0 ? <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</> : <>🎵 Start recording and play some notes to create your masterpiece!</>}
+                  <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700 transition-colors">
+                    {recordedNotes.length > 0 ? <>📝 {recordedNotes.length} notes recorded • Ready to save!</> : <>🎵 Start recording and play some notes!</>}
                   </div>
-                  <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700">
-                    {currentUser ? 'Your compositions will be saved to your profile and visible in Active Users!' : 'Sign in to save compositions to your profile!'}
+                  <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700 transition-colors">
+                    {currentUser ? 'Save to add notes to your profile total!' : 'Sign in to save!'}
                   </div>
                 </div>
               </div>
