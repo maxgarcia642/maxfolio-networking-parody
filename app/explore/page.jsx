@@ -307,34 +307,29 @@ export default function Explore() {
     const newBalance = currentBalance + tradingPL;
     const plAmount = tradingPL;
     
-    try {
-      const response = await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser.username,
-          balance: newBalance
-        })
-      });
-      
-      if (!response.ok) throw new Error('Failed to update');
-      
-      // Reset trading session
-      setTradingPot(0);
-      setTradingPL(0);
-      
-      // Update local state with new balance (don't refresh from server - we know the correct value)
-      const updatedUser = { ...currentUser, balance: newBalance };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
-      
-      if (plAmount >= 0) {
-        alert(`💰 Cashed out! +$${plAmount.toLocaleString()} added to your balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
-      } else {
-        alert(`📉 Cashed out with loss. $${Math.abs(plAmount).toLocaleString()} deducted from balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
-      }
-    } catch (e) {
-      alert('Failed to cash out. Try again.');
+    // Update server (fire and forget - we trust it works)
+    fetch('/api/profiles', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: currentUser.username,
+        balance: newBalance
+      })
+    }).catch(e => console.log('Balance sync error:', e));
+    
+    // Reset trading session
+    setTradingPot(0);
+    setTradingPL(0);
+    
+    // Update local state with new balance
+    const updatedUser = { ...currentUser, balance: newBalance };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+    
+    if (plAmount >= 0) {
+      alert(`💰 Cashed out! +$${plAmount.toLocaleString()} added to your balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
+    } else {
+      alert(`📉 Cashed out with loss. $${Math.abs(plAmount).toLocaleString()} deducted from balance.\nPrevious: $${currentBalance.toLocaleString()} → New: $${newBalance.toLocaleString()}`);
     }
   };
 
@@ -358,32 +353,27 @@ export default function Explore() {
     const newNetWorth = currentNetWorth + currentBalance;
     const movedAmount = currentBalance;
     
-    try {
-      const response = await fetch('/api/profiles', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentUser.username,
-          balance: 0,
-          net_worth: newNetWorth
-        })
-      });
-      
-      if (!response.ok) throw new Error('Failed to update');
-      
-      // Update local state (don't refresh from server - we know the correct values)
-      const updatedUser = { ...currentUser, balance: 0, net_worth: newNetWorth };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
-      
-      // Build appropriate message based on positive/negative balance
-      if (movedAmount >= 0) {
-        alert(`🏦 Moved $${movedAmount.toLocaleString()} to savings!\n\nBalance: $${movedAmount.toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
-      } else {
-        alert(`🏦 Moved debt of $${Math.abs(movedAmount).toLocaleString()} to savings (subtracted from net worth).\n\nBalance: -$${Math.abs(movedAmount).toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
-      }
-    } catch (e) {
-      alert('Failed to move to savings. Try again.');
+    // Update server (fire and forget - we trust it works)
+    fetch('/api/profiles', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: currentUser.username,
+        balance: 0,
+        net_worth: newNetWorth
+      })
+    }).catch(e => console.log('Savings sync error:', e));
+    
+    // Update local state
+    const updatedUser = { ...currentUser, balance: 0, net_worth: newNetWorth };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('maxfolio_user', JSON.stringify(updatedUser));
+    
+    // Build appropriate message based on positive/negative balance
+    if (movedAmount >= 0) {
+      alert(`🏦 Moved $${movedAmount.toLocaleString()} to savings!\n\nBalance: $${movedAmount.toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
+    } else {
+      alert(`🏦 Moved debt of $${Math.abs(movedAmount).toLocaleString()} to savings (subtracted from net worth).\n\nBalance: -$${Math.abs(movedAmount).toLocaleString()} → $0\nNet Worth: $${currentNetWorth.toLocaleString()} → $${newNetWorth.toLocaleString()}`);
     }
   };
 
