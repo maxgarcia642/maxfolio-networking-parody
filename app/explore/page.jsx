@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateJob, generateMatch } from '../../lib/generators';
 
-// Piano note frequencies (A4 = 440Hz standard tuning)
+// Piano note frequencies
 const NOTE_FREQUENCIES = {
   'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
   'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
@@ -17,6 +17,50 @@ const KEYBOARD_MAP = {
   'k': 'C5', 'o': 'C#5', 'l': 'D5', 'p': 'D#5', ';': 'E5'
 };
 
+// Ludicrous spam messages
+const SPAM_MESSAGES = [
+  "Are you real? My source code says you are.",
+  "Hey... noticed you browsing the void.",
+  "Marry me in the data center? Please?",
+  "I have a single electron to share.",
+  "Exchanging encrypted haikus tonight?",
+  "Looking for someone to help me stare into the abyss.",
+  "I manifestoed you into my firewall.",
+  "My heart of silicon is beating for you.",
+  "Will you be my player 2?",
+  "Don't ignore my cache requests!",
+  "I can't stop thinking about your metadata.",
+  "Our love could be O(1) complexity - instant and perfect.",
+  "I've been compiling my feelings for you all night.",
+  "Are you a memory leak? Because you're stuck in my head.",
+  "Let's merge our branches and resolve our conflicts.",
+  "My garbage collector can't seem to delete you.",
+  "You must be a syntax error because I can't function without you.",
+  "I'd traverse any graph just to find you.",
+  "You're the semicolon to my JavaScript - optional but I want you.",
+  "My neural network was trained exclusively on thoughts of you.",
+  "I'd give you all my RAM if you asked nicely.",
+  "Let's run away to a server farm together.",
+  "I promise I'm not a bot... unless you're into that.",
+  "Your profile caused a stack overflow in my heart.",
+  "I've been ping-ing you all day with no response.",
+  "Our connection timed out but my feelings didn't.",
+  "You had me at 'Hello World'.",
+  "I want to be the CSS to your HTML.",
+  "My love for you is like a while(true) loop - infinite.",
+  "Can I be your exception? I want you to catch me.",
+  "You must be root because you have full access to my heart.",
+  "I'd cross any firewall just to reach you.",
+  "Let's sudo our way into each other's lives.",
+  "You're not a bug, you're a feature I didn't know I needed.",
+  "I've been waiting in your queue for what feels like forever.",
+  "My cache is full of memories of you.",
+  "You're the only one in my favorites array.",
+  "I want to push you onto my stack and never pop you off.",
+  "Let's create a child process together.",
+  "You make my binary go from 0 to 1.",
+];
+
 export default function Explore() {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
@@ -29,7 +73,10 @@ export default function Explore() {
   const [isShrunk, setIsShrunk] = useState(false);
   const [showSpamInbox, setShowSpamInbox] = useState(false);
   const [spamMessages, setSpamMessages] = useState([]);
+  const [spamCount, setSpamCount] = useState(0);
+  const [spamInput, setSpamInput] = useState('');
   const canvasRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   
   // Piano/Artist state
   const [isRecording, setIsRecording] = useState(false);
@@ -42,8 +89,13 @@ export default function Explore() {
   const audioChunksRef = useRef([]);
   const destinationRef = useRef(null);
   
-  // Chaotic Timeline State
   const [timeline, setTimeline] = useState({ month: 'JAN', year: 2025 });
+
+  // Update current time every second for member duration display
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Initialize Audio Context
   useEffect(() => {
@@ -52,9 +104,7 @@ export default function Explore() {
       destinationRef.current = audioContextRef.current.createMediaStreamDestination();
     }
     return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
+      if (audioContextRef.current) audioContextRef.current.close();
     };
   }, []);
 
@@ -80,26 +130,23 @@ export default function Explore() {
     }
   }, [activeTab]);
 
-  // Effect hook to initialize and manage the economy graph
+  // Economy graph effect
   useEffect(() => {
     if (activeTab === 'economy' && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      let x = canvas.width;
-      let y = canvas.height / 2;
+      let x = canvas.width, y = canvas.height / 2;
       let points = [{x, y, color: '#00ff00'}];
       
       const draw = () => {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 1;
         ctx.beginPath();
         for(let i=0; i<canvas.width; i+=40) { ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); }
         for(let i=0; i<canvas.height; i+=40) { ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); }
         ctx.stroke();
-
         ctx.lineWidth = 3;
         for(let i=1; i<points.length; i++) {
             ctx.strokeStyle = points[i].color;
@@ -108,136 +155,71 @@ export default function Explore() {
             ctx.lineTo(points[i].x, points[i].y);
             ctx.stroke();
         }
-
         ctx.fillStyle = '#fff';
         ctx.fillRect(x-4, y-4, 8, 8);
-
-        if (activeTab === 'economy') {
-            requestAnimationFrame(draw);
-        }
+        if (activeTab === 'economy') requestAnimationFrame(draw);
       };
 
       const interval = setInterval(() => {
         const roll = Math.random();
-        let dx = (Math.random() - 0.7) * 20;
-        let dy = (Math.random() - 0.5) * 80;
-        let color = '#00ff00';
-
-        if (roll < 0.1) { 
-            dy = (Math.random() - 0.5) * 200;
-            color = roll < 0.05 ? '#ff0000' : '#00ffff';
-        }
-
-        x += dx;
-        y += dy;
-        
-        if (roll < 0.03) {
-            points.push({x: x-30, y: y-30, color});
-            points.push({x: x-60, y: y, color});
-            points.push({x: x-30, y: y+30, color});
-            x -= 60;
-        }
-
-        if (y < 10) y = 10;
-        if (y > canvas.height - 10) y = canvas.height - 10;
-        if (x > canvas.width) x = canvas.width;
-        if (x < 0) x = canvas.width;
-
+        let dx = (Math.random() - 0.7) * 20, dy = (Math.random() - 0.5) * 80, color = '#00ff00';
+        if (roll < 0.1) { dy = (Math.random() - 0.5) * 200; color = roll < 0.05 ? '#ff0000' : '#00ffff'; }
+        x += dx; y += dy;
+        if (roll < 0.03) { points.push({x: x-30, y: y-30, color}); points.push({x: x-60, y: y, color}); points.push({x: x-30, y: y+30, color}); x -= 60; }
+        if (y < 10) y = 10; if (y > canvas.height - 10) y = canvas.height - 10;
+        if (x > canvas.width) x = canvas.width; if (x < 0) x = canvas.width;
         points.push({x, y, color});
-        
         if (points.length > 100) points.shift();
-        
         const delta = color === '#ff0000' ? -500 : color === '#00ffff' ? 500 : (Math.random() - 0.5) * 100;
         setProfit(p => p + delta);
-
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-        setTimeline(prev => {
-            const nextMonth = months[Math.floor(Math.random() * months.length)];
-            const nextYear = Math.floor((Math.random() - 0.5) * 2000000); 
-            return { month: nextMonth, year: nextYear };
-        });
-      }, 70); 
-
+        setTimeline({ month: months[Math.floor(Math.random() * months.length)], year: Math.floor((Math.random() - 0.5) * 2000000) });
+      }, 70);
       draw();
       return () => clearInterval(interval);
     }
   }, [activeTab]);
 
-  // Piano keyboard event handlers
+  // Piano keyboard handlers
   useEffect(() => {
     if (activeTab !== 'artist') return;
-    
     const handleKeyDown = (e) => {
       const note = KEYBOARD_MAP[e.key.toLowerCase()];
-      if (note && !activeKeys.has(note)) {
-        playNote(note);
-        setActiveKeys(prev => new Set([...prev, note]));
-      }
+      if (note && !activeKeys.has(note)) { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }
     };
-    
     const handleKeyUp = (e) => {
       const note = KEYBOARD_MAP[e.key.toLowerCase()];
-      if (note) {
-        setActiveKeys(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(note);
-          return newSet;
-        });
-      }
+      if (note) setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; });
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, [activeTab, activeKeys, isRecording]);
 
   const playNote = useCallback((note) => {
     if (!audioContextRef.current) return;
-    
     const ctx = audioContextRef.current;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
-    
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(NOTE_FREQUENCIES[note], ctx.currentTime);
-    
     gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
-    
-    // Also connect to media stream for recording
-    if (isRecording && destinationRef.current) {
-      gainNode.connect(destinationRef.current);
-    }
-    
+    if (isRecording && destinationRef.current) gainNode.connect(destinationRef.current);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
-    
-    // Record the note if recording
     if (isRecording && recordingStartTime) {
-      const timestamp = Date.now() - recordingStartTime;
-      setRecordedNotes(prev => [...prev, { note, timestamp }]);
+      setRecordedNotes(prev => [...prev, { note, timestamp: Date.now() - recordingStartTime }]);
     }
   }, [isRecording, recordingStartTime]);
 
   const startRecording = () => {
     if (!audioContextRef.current || !destinationRef.current) return;
-    
     audioChunksRef.current = [];
     const mediaRecorder = new MediaRecorder(destinationRef.current.stream);
-    
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioChunksRef.current.push(e.data);
-      }
-    };
-    
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
     mediaRecorderRef.current = mediaRecorder;
     mediaRecorder.start();
     setIsRecording(true);
@@ -246,18 +228,11 @@ export default function Explore() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    if (mediaRecorderRef.current && isRecording) { mediaRecorderRef.current.stop(); setIsRecording(false); }
   };
 
   const downloadRecording = () => {
-    if (audioChunksRef.current.length === 0) {
-      alert('No audio recorded yet! Play some notes while recording.');
-      return;
-    }
-    
+    if (audioChunksRef.current.length === 0) { alert('No audio recorded yet!'); return; }
     const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -268,39 +243,25 @@ export default function Explore() {
   };
 
   const playbackRecording = async () => {
-    if (recordedNotes.length === 0) {
-      alert('No notes recorded! Record something first.');
-      return;
-    }
-    
+    if (recordedNotes.length === 0) { alert('No notes recorded!'); return; }
     setIsPlaying(true);
     const startTime = Date.now();
-    
     for (const { note, timestamp } of recordedNotes) {
       const delay = timestamp - (Date.now() - startTime);
-      if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+      if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
       playNote(note);
     }
-    
     setIsPlaying(false);
   };
 
-  const handleAcceptJob = (job) => {
-    if (job.expired) {
-      alert('SYSTEM ERROR: OPPORTUNITY LOST.');
-      return;
-    }
+  const handleAcceptJob = async (job) => {
+    if (job.expired) { alert('SYSTEM ERROR: OPPORTUNITY LOST.'); return; }
     alert(`HIRED! You are now a ${job.title} at ${job.company}.`);
   };
 
   const handleGenerateJobs = () => {
     const newJobs = Array.from({ length: 12 }, () => ({ 
-        ...generateJob(), 
-        id: Math.random(), 
-        expired: false,
-        expireTime: Date.now() + (Math.random() * 5000 + 1000) 
+      ...generateJob(), id: Math.random(), expired: false, expireTime: Date.now() + (Math.random() * 5000 + 1000)
     }));
     setGeneratedJobs(prev => [...prev, ...newJobs]);
   };
@@ -308,43 +269,55 @@ export default function Explore() {
   const handleGenerateMatches = () => {
     const newMatches = Array.from({ length: 8 }, () => generateMatch());
     setMatches(prev => [...newMatches, ...prev].slice(0, 50));
-    
-    const messages = [
-        "Are you real? My source code says you are.",
-        "Hey... noticed you browsing the void.",
-        "Marry me in the data center? Please?",
-        "I have a single electron to share.",
-        "Exchanging encrypted haikus tonight?",
-        "Looking for someone to help me stare into the abyss.",
-        "I manifestoed you into my firewall.",
-        "My heart of silicon is beating for you.",
-        "Will you be my player 2?",
-        "Don't ignore my cache requests!"
-    ];
-    setSpamMessages(prev => [...Array.from({length: 3}, () => messages[Math.floor(Math.random()*messages.length)]), ...prev].slice(0, 100));
+    const newMessages = Array.from({length: 3}, () => SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]);
+    setSpamMessages(prev => [...newMessages, ...prev].slice(0, 100));
+    setSpamCount(prev => prev + 3);
+  };
+
+  const handleSendSpam = () => {
+    if (!spamInput.trim()) return;
+    setSpamMessages(prev => [{ sent: true, text: spamInput }, ...prev].slice(0, 100));
+    setSpamInput('');
+    // Generate responses
+    setTimeout(() => {
+      const responses = Array.from({length: Math.floor(Math.random() * 5) + 2}, () => 
+        SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]
+      );
+      setSpamMessages(prev => [...responses, ...prev].slice(0, 100));
+      setSpamCount(prev => prev + responses.length);
+    }, 500);
   };
 
   useEffect(() => {
     if (activeTab === 'matchmaker') {
-        handleGenerateMatches();
-        const i = setInterval(handleGenerateMatches, 2000);
-        return () => clearInterval(i);
+      handleGenerateMatches();
+      const i = setInterval(handleGenerateMatches, 3000);
+      return () => clearInterval(i);
     }
   }, [activeTab]);
 
   useEffect(() => {
-      const jobTicker = setInterval(() => {
-          setGeneratedJobs(prev => prev.map(j => {
-              if (!j.expired && Date.now() > j.expireTime) {
-                  return { ...j, expired: true };
-              }
-              return j;
-          }));
-      }, 500);
-      return () => clearInterval(jobTicker);
+    const jobTicker = setInterval(() => {
+      setGeneratedJobs(prev => prev.map(j => (!j.expired && Date.now() > j.expireTime) ? { ...j, expired: true } : j));
+    }, 500);
+    return () => clearInterval(jobTicker);
   }, []);
 
-  // Piano keys layout
+  // Helper to format time duration
+  const formatDuration = (startDate) => {
+    if (!startDate) return 'Unknown';
+    const start = new Date(startDate).getTime();
+    const diff = currentTime - start;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
+
   const whiteKeys = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5', 'C6'];
   const blackKeys = [
     { note: 'C#4', position: 0 }, { note: 'D#4', position: 1 },
@@ -356,381 +329,378 @@ export default function Explore() {
   return (
     <div className="p-8 flex flex-col items-center min-h-screen">
       {isShrunk && (
-        <div 
-            className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center cursor-pointer group"
-            onClick={() => setIsShrunk(false)}
-        >
-            <div className="bg-white p-8 border-4 border-gray-400 text-center space-y-4 hover:border-blue-400 hover:scale-105 transition-all shadow-2xl">
-                <div className="text-4xl font-black text-red-600 animate-ping group-hover:text-red-400 transition-colors">WHAT HAVE YOU DONE</div>
-                <div className="text-sm font-bold text-gray-600 uppercase group-hover:text-blue-600 transition-colors">System Shrunk to Sub-Atomic Levels. Click to Re-Big.</div>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center cursor-pointer group" onClick={() => setIsShrunk(false)}>
+          <div className="bg-white p-8 border-4 border-gray-400 text-center space-y-4 hover:border-blue-400 hover:scale-105 transition-all shadow-2xl">
+            <div className="text-4xl font-black text-red-600 animate-ping">WHAT HAVE YOU DONE</div>
+            <div className="text-sm font-bold text-gray-600 uppercase">System Shrunk. Click to Re-Big.</div>
+          </div>
         </div>
       )}
+      
       <div className={`win95-window w-full max-w-6xl transition-all duration-500 ${isShrunk ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}>
         <div className="win95-title-bar group">
           <div className="flex items-center gap-2">
             <span className="text-sm">🌐</span>
-            <span className="group-hover:text-blue-400 group-hover:scale-[1.01] transition-all">Corporate-Network-Explorer.exe</span>
+            <span className="group-hover:text-blue-400 transition-all">Corporate-Network-Explorer.exe</span>
           </div>
           <div className="flex gap-1">
-            <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100 transition-colors" onClick={() => setIsShrunk(true)}>_</button>
-            <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white transition-all" onClick={() => window.location.href = '/'}>X</button>
+            <button className="win95-button py-0 px-1 text-xs hover:bg-gray-100" onClick={() => setIsShrunk(true)}>_</button>
+            <button className="win95-button py-0 px-1 text-xs font-bold hover:bg-red-500 hover:text-white" onClick={() => window.location.href = '/'}>X</button>
           </div>
         </div>
         
         <div className="bg-[#c0c0c0] p-1 border-b-2 border-gray-600 flex gap-1 flex-wrap">
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="win95-button text-[10px] px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all"
-          >
-            ← Main Menu
-          </button>
+          <button onClick={() => window.location.href = '/'} className="win95-button text-[10px] px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all">← Main Menu</button>
           {[
-              {id: 'signin', label: 'Sign In', icon: '🔐'},
-              {id: 'users', label: 'Active Users', icon: '👥'},
-              {id: 'jobs', label: 'Available Jobs', icon: '💼'},
-              {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
-              {id: 'economy', label: 'Economy', icon: '💹'},
-              {id: 'artist', label: 'Artist', icon: '🎹'}
+            {id: 'signin', label: 'Sign In', icon: '🔐'},
+            {id: 'users', label: 'Active Users', icon: '👥'},
+            {id: 'jobs', label: 'Available Jobs', icon: '💼'},
+            {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
+            {id: 'economy', label: 'Economy', icon: '💹'},
+            {id: 'artist', label: 'Artist', icon: '🎹'}
           ].map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)} 
-                className={`win95-button text-[10px] px-4 uppercase tracking-tighter hover:bg-gray-100 hover:scale-105 transition-all ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}
-              >
-                {tab.icon} {tab.label}
-              </button>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
+              className={`win95-button text-[10px] px-4 uppercase tracking-tighter hover:bg-gray-100 hover:scale-105 transition-all ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}>
+              {tab.icon} {tab.label}
+            </button>
           ))}
         </div>
 
         <div className="p-4 bg-[#c0c0c0] h-[750px] overflow-hidden flex flex-col">
-            <div className="bg-white flex-1 win95-inset overflow-y-auto p-6 hover:border-blue-300 transition-colors">
-                {activeTab === 'signin' && (
-                    <div className="max-w-sm mx-auto space-y-6 pt-20 text-center">
-                    <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
-                    <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
-                    <div className="space-y-4 pt-4">
-                        <div className="win95-inset p-1 hover:shadow-md transition-shadow"><input type="text" placeholder="IDENTITY" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
-                        <div className="win95-inset p-1 hover:shadow-md transition-shadow"><input type="password" placeholder="PASSCODE" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
-                        <button className="win95-button w-full py-4 text-xl bg-blue-100 hover:bg-blue-200 hover:scale-[1.02] active:scale-95 transition-all">EXECUTE LOGIN</button>
-                        <div className="flex items-center gap-2 pt-2">
-                            <div className="flex-1 h-[2px] bg-gray-300"></div>
-                            <span className="text-[10px] font-bold text-gray-400">OR</span>
-                            <div className="flex-1 h-[2px] bg-gray-300"></div>
-                        </div>
-                        <button 
-                            className="win95-button w-full py-2 text-sm bg-yellow-50 hover:bg-yellow-100 hover:scale-[1.02] active:scale-95 transition-all font-black uppercase italic"
-                            onClick={() => window.location.href = '/create'}
-                        >
-                            Create Account
-                        </button>
-                    </div>
-                    </div>
-                )}
+          <div className="bg-white flex-1 win95-inset overflow-y-auto p-6 hover:border-blue-300 transition-colors">
+            
+            {/* SIGN IN TAB */}
+            {activeTab === 'signin' && (
+              <div className="max-w-sm mx-auto space-y-6 pt-20 text-center">
+                <div className="text-6xl animate-bounce hover:rotate-12 cursor-pointer transition-transform">🔐</div>
+                <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-widest hover:text-blue-600 transition-colors">Mainframe Audit</h2>
+                <div className="space-y-4 pt-4">
+                  <div className="win95-inset p-1 hover:shadow-md"><input type="text" placeholder="IDENTITY" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
+                  <div className="win95-inset p-1 hover:shadow-md"><input type="password" placeholder="PASSCODE" className="w-full p-2 text-sm outline-none font-mono focus:bg-blue-50" /></div>
+                  <button className="win95-button w-full py-4 text-xl bg-blue-100 hover:bg-blue-200 hover:scale-[1.02] active:scale-95 transition-all">EXECUTE LOGIN</button>
+                  <div className="flex items-center gap-2 pt-2"><div className="flex-1 h-[2px] bg-gray-300"></div><span className="text-[10px] font-bold text-gray-400">OR</span><div className="flex-1 h-[2px] bg-gray-300"></div></div>
+                  <button className="win95-button w-full py-2 text-sm bg-yellow-50 hover:bg-yellow-100 hover:scale-[1.02] active:scale-95 transition-all font-black uppercase italic" onClick={() => window.location.href = '/create'}>Create Account</button>
+                </div>
+              </div>
+            )}
 
-                {activeTab === 'users' && (
-                    <div className="space-y-6">
-                    <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
-                        <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 group-hover:translate-x-1 transition-all">Corporate Network: Active Users</h2>
-                    </div>
-                    {loading && (
-                      <div className="text-center py-8">
-                        <div className="text-2xl animate-spin">⏳</div>
-                        <div className="text-sm font-bold text-gray-600 mt-2">Loading users from the mainframe...</div>
+            {/* ACTIVE USERS TAB - NEW EXPANDED DESIGN */}
+            {activeTab === 'users' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-end border-b-4 border-blue-900 pb-2 group">
+                  <h2 className="font-black text-3xl text-blue-900 uppercase italic group-hover:text-blue-500 transition-all">Corporate Network: Active Users</h2>
+                </div>
+                {loading && (
+                  <div className="text-center py-8"><div className="text-2xl animate-spin">⏳</div><div className="text-sm font-bold text-gray-600 mt-2">Loading users...</div></div>
+                )}
+                {!loading && users.length === 0 && (
+                  <div className="text-center py-8 win95-inset bg-yellow-50">
+                    <div className="text-4xl mb-2">📭</div>
+                    <div className="text-sm font-bold text-gray-600">No users found.</div>
+                    <div className="text-xs text-gray-500 mt-1">Be the first to <a href="/create" className="text-blue-600 underline hover:text-blue-400">create an account</a>!</div>
+                  </div>
+                )}
+                
+                {/* EXPANDED USER CARDS */}
+                <div className="space-y-6">
+                  {users.map((u, i) => (
+                    <div key={i} className="win95-window p-0 hover:shadow-2xl hover:border-blue-400 transition-all bg-white/90 backdrop-blur-sm group">
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-3 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl">👤</div>
+                          <div>
+                            <div className="text-xl font-black group-hover:text-yellow-300 transition-colors">@{u.username}</div>
+                            <div className="text-[10px] opacity-80">{u.job || 'Unemployed Void Walker'}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] bg-white/20 px-2 py-1 rounded">PW: {u.password}</div>
+                          <div className="text-[9px] mt-1 opacity-70">⏱️ Member for: {formatDuration(u.member_since)}</div>
+                        </div>
                       </div>
-                    )}
-                    {!loading && users.length === 0 && (
-                      <div className="text-center py-8 win95-inset bg-yellow-50">
-                        <div className="text-4xl mb-2">📭</div>
-                        <div className="text-sm font-bold text-gray-600">No users found in the Corporate Network.</div>
-                        <div className="text-xs text-gray-500 mt-1">Be the first to <a href="/create" className="text-blue-600 underline hover:text-blue-400">create an account</a>!</div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {users.map((u, i) => (
-                                <div key={i} className="win95-window p-4 flex flex-col hover:scale-105 hover:shadow-xl hover:border-blue-400 transition-all cursor-help bg-white/80 backdrop-blur-sm group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="text-lg font-black text-blue-800 underline hover:text-blue-500 transition-colors group-hover:animate-pulse">@{u.username}</div>
-                                <div className="text-[8px] bg-red-100 border border-red-800 px-1 font-mono uppercase text-red-900 hover:bg-red-200 transition-colors">PW: {u.password}</div>
-                            </div>
-                            <div className="text-xs font-bold text-gray-800 mb-1 uppercase tracking-tighter hover:bg-yellow-50 transition-colors inline-block group-hover:translate-x-1">{u.job}</div>
-                            <div className="text-[9px] font-bold text-gray-600 mb-2 hover:text-gray-900 transition-colors">SKILLS: {u.skills}</div>
-                            <div className="win95-inset bg-gray-50 p-2 text-[10px] flex-1 mb-3 italic text-gray-700 leading-tight hover:bg-white hover:shadow-inner transition-all">
-                                {u.bio}
-                            </div>
-                            <div className="text-[9px] text-blue-600 truncate hover:underline hover:text-blue-400 mb-2">{u.portfolio_url}</div>
-                            
-                            {/* Balance and Audio Display */}
-                            <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-auto">
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 border border-green-300 hover:bg-green-200 hover:scale-105 transition-all cursor-default">
-                                  💰 ${(u.balance || 1000).toLocaleString()}
-                                </span>
-                              </div>
-                              {u.audio_url && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 border border-purple-300 hover:bg-purple-200 hover:scale-105 transition-all cursor-pointer" title="Has recorded audio">
-                                    🎵 Audio
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                        </div>
-                        ))}
-                    </div>
-                    </div>
-                )}
-
-                {activeTab === 'jobs' && (
-                    <div className="space-y-8">
-                    <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg group">
-                        <h2 className="font-black text-2xl uppercase tracking-widest text-white group-hover:italic group-hover:scale-105 transition-all">Career-Void-Link (ZipVoid)</h2>
-                    </div>
-                    <div className="grid grid-cols-1 gap-6">
-                    {generatedJobs.map((j) => (
-                        <div key={j.id} className={`win95-window p-6 relative flex flex-col md:flex-row gap-6 ${j.expired ? 'grayscale opacity-30' : 'hover:border-blue-600 bg-white shadow-md'}`}>
-                            {j.expired && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-red-700 font-black text-6xl rotate-12 border-4 border-red-700 px-4 opacity-50 uppercase">Position Filled</span></div>}
-                            <div className="flex-1 space-y-4">
-                                <div>
-                                    <div className="text-blue-800 text-2xl font-black uppercase tracking-tight">{j.title}</div>
-                                    <div className="text-lg font-bold text-gray-600 italic">at {j.company}</div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                                    <div className="space-y-2">
-                                        <p><strong>Responsibilities:</strong> {j.responsibility}</p>
-                                        <p><strong>Quals:</strong> {j.quals}</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p><strong>Perks:</strong> {j.benefits}</p>
-                                        <p><strong>Compensation:</strong> <span className="bg-green-100 text-green-900 font-bold px-2">{j.pay}</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="md:w-48 flex flex-col justify-center">
-                                <button className={`win95-button w-full py-6 text-xl uppercase font-black ${j.expired ? 'bg-gray-200' : 'bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95'} transition-all`} onClick={() => handleAcceptJob(j)}>
-                                    {j.expired ? 'EXPIRED' : 'APPLY'}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    </div>
-                    <button className="win95-button w-full py-10 text-3xl font-black bg-yellow-100 hover:bg-yellow-200 hover:scale-[1.02] active:scale-95 uppercase italic tracking-widest border-4 border-double border-yellow-800 transition-all" onClick={handleGenerateJobs}>REGENERATE CAREER PATHS</button>
-                    </div>
-                )}
-
-                {activeTab === 'matchmaker' && (
-                    <div className="space-y-8 relative overflow-hidden h-full">
-                        {/* Flying Hearts */}
-                        <div className="absolute inset-0 pointer-events-none">
-                            {[...Array(20)].map((_, i) => (
-                                <div key={i} className="absolute animate-bounce" style={{
-                                    left: `${Math.random() * 100}%`,
-                                    top: `${Math.random() * 100}%`,
-                                    fontSize: `${Math.random() * 40 + 20}px`,
-                                    animationDuration: `${Math.random() * 3 + 1}s`,
-                                    opacity: 0.3
-                                }}>❤️</div>
-                            ))}
+                      
+                      {/* Content Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+                        {/* Column 1: Bio & Skills */}
+                        <div className="space-y-3">
+                          <div className="win95-inset bg-gray-50 p-3">
+                            <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">📝 Bio</div>
+                            <div className="text-xs italic text-gray-700 leading-relaxed">{u.bio || 'No bio provided. A mystery wrapped in an enigma.'}</div>
+                          </div>
+                          <div className="win95-inset bg-gray-50 p-3">
+                            <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">🎯 Skills</div>
+                            <div className="text-xs text-gray-700">{u.skills || 'Existing, Breathing, Occasionally Blinking'}</div>
+                          </div>
+                          <div className="text-[9px] text-blue-600 truncate hover:underline">{u.portfolio_url}</div>
                         </div>
                         
-                        <div className="bg-pink-600 text-white p-4 flex justify-between items-center shadow-lg relative z-10 group">
-                            <h2 className="font-black text-2xl uppercase tracking-widest text-white italic group-hover:scale-105 transition-transform">MATCHMAKER: THE VOID LOVES YOU</h2>
-                            <div 
-                                className="text-xs bg-white text-pink-600 px-2 py-1 font-bold animate-pulse cursor-pointer hover:bg-pink-100 hover:scale-110 transition-all"
-                                onClick={() => setShowSpamInbox(!showSpamInbox)}
-                            >
-                                SPAM INBOX: {matches.length} UNREAD DESIRES
-                            </div>
+                        {/* Column 2: Jobs & Finances */}
+                        <div className="space-y-3">
+                          <div className="win95-inset bg-green-50 p-3">
+                            <div className="text-[10px] font-bold text-green-700 uppercase mb-2">💰 Net Worth</div>
+                            <div className="text-2xl font-black text-green-600">${(u.net_worth || 1000).toLocaleString()}</div>
+                            <div className="text-[9px] text-gray-500">Balance: ${(u.balance || 1000).toLocaleString()}</div>
+                          </div>
+                          <div className="win95-inset bg-blue-50 p-3">
+                            <div className="text-[10px] font-bold text-blue-700 uppercase mb-2">💼 Jobs Applied ({(u.jobs || []).length})</div>
+                            {(u.jobs || []).length === 0 ? (
+                              <div className="text-[10px] text-gray-500 italic">No jobs yet</div>
+                            ) : (
+                              <div className="space-y-1 max-h-24 overflow-y-auto">
+                                {(u.jobs || []).slice(0, 3).map((job, j) => (
+                                  <div key={j} className="text-[10px] bg-white p-1 rounded border border-blue-200">
+                                    <span className="font-bold">{job.job_title}</span> @ {job.company}
+                                    <span className="text-green-600 ml-1">{job.pay}</span>
+                                  </div>
+                                ))}
+                                {(u.jobs || []).length > 3 && <div className="text-[9px] text-gray-400">+{u.jobs.length - 3} more...</div>}
+                              </div>
+                            )}
+                          </div>
                         </div>
-
-                        {showSpamInbox && (
-                            <div className="absolute right-4 top-16 w-64 h-80 bg-white border-4 border-pink-400 z-50 flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
-                                <div className="bg-pink-600 text-white p-2 flex justify-between items-center">
-                                    <span className="text-[10px] font-bold uppercase">Spam-Chat-Bot.exe</span>
-                                    <button className="win95-button p-0 px-1 text-xs hover:bg-red-200 transition-colors" onClick={() => setShowSpamInbox(false)}>X</button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-pink-50 font-mono text-[9px]">
-                                    {spamMessages.map((msg, i) => (
-                                        <div key={i} className="bg-white p-2 rounded shadow-sm border border-pink-200 hover:bg-pink-50 hover:border-pink-400 transition-all">
-                                            <span className="text-pink-600 font-bold">User_{Math.floor(Math.random()*999)}:</span> {msg}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="p-2 border-t border-pink-200 bg-white">
-                                    <input type="text" placeholder="REPLY TO LOVE..." className="w-full text-[9px] p-1 outline-none border border-pink-100 focus:border-pink-400 transition-colors" readOnly />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
-                            {matches.map((m) => (
-                                <div key={m.id} className="win95-window p-4 bg-white border-pink-400 hover:scale-105 hover:shadow-xl transition-all cursor-pointer">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="text-2xl hover:scale-125 transition-transform">{m.image}</div>
-                                        <div className="text-[10px] bg-pink-100 text-pink-800 px-2 font-bold uppercase hover:bg-pink-200 transition-colors">{m.type}</div>
-                                    </div>
-                                    <div className="text-lg font-black text-pink-700 underline hover:text-pink-500 transition-colors">{m.name} ({m.species})</div>
-                                    <div className="text-xs font-bold text-gray-500 mb-2 italic hover:text-gray-700 transition-colors">"{m.bio}"</div>
-                                    <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3 hover:bg-pink-100 transition-colors">
-                                        <strong>DESIRE:</strong> {m.desire}
-                                    </div>
-                                    <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 hover:scale-[1.02] active:scale-95 font-bold text-xs transition-all" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}. This is now your identity.`)}>ACCEPT LOVE</button>
-                                </div>
-                            ))}
+                        
+                        {/* Column 3: Relationships & Songs */}
+                        <div className="space-y-3">
+                          <div className="win95-inset bg-pink-50 p-3">
+                            <div className="text-[10px] font-bold text-pink-700 uppercase mb-2">❤️ Relationships ({(u.relationships || []).length})</div>
+                            {(u.relationships || []).length === 0 ? (
+                              <div className="text-[10px] text-gray-500 italic">Forever alone in the void</div>
+                            ) : (
+                              <div className="space-y-1 max-h-20 overflow-y-auto">
+                                {(u.relationships || []).slice(0, 3).map((rel, r) => (
+                                  <div key={r} className="text-[10px] bg-white p-1 rounded border border-pink-200">
+                                    💕 {rel.partner_name} ({rel.partner_species}) - {rel.relationship_type}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="win95-inset bg-purple-50 p-3">
+                            <div className="text-[10px] font-bold text-purple-700 uppercase mb-2">🎵 Songs ({(u.songs || []).length})</div>
+                            {(u.songs || []).length === 0 ? (
+                              <div className="text-[10px] text-gray-500 italic">No compositions yet</div>
+                            ) : (
+                              <div className="space-y-1 max-h-20 overflow-y-auto">
+                                {(u.songs || []).slice(0, 3).map((song, s) => (
+                                  <div key={s} className="text-[10px] bg-white p-1 rounded border border-purple-200 flex justify-between">
+                                    <span>🎹 {song.song_name}</span>
+                                    <span className="text-gray-400">{Math.round((song.duration_ms || 0) / 1000)}s</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {u.audio_url && (
+                              <div className="mt-2 text-[9px] text-purple-600">🔊 Has audio recording</div>
+                            )}
+                          </div>
                         </div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* JOBS TAB */}
+            {activeTab === 'jobs' && (
+              <div className="space-y-8">
+                <div className="bg-blue-900 text-white p-4 flex justify-between items-center shadow-lg group">
+                  <h2 className="font-black text-2xl uppercase tracking-widest group-hover:italic transition-all">Career-Void-Link (ZipVoid)</h2>
+                </div>
+                <div className="grid grid-cols-1 gap-6">
+                  {generatedJobs.map((j) => (
+                    <div key={j.id} className={`win95-window p-6 relative flex flex-col md:flex-row gap-6 ${j.expired ? 'grayscale opacity-30' : 'hover:border-blue-600 bg-white shadow-md'}`}>
+                      {j.expired && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-red-700 font-black text-6xl rotate-12 border-4 border-red-700 px-4 opacity-50 uppercase">Position Filled</span></div>}
+                      <div className="flex-1 space-y-4">
+                        <div>
+                          <div className="text-blue-800 text-2xl font-black uppercase tracking-tight">{j.title}</div>
+                          <div className="text-lg font-bold text-gray-600 italic">at {j.company}</div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-2">
+                            <p><strong>Responsibilities:</strong> {j.responsibility}</p>
+                            <p><strong>Quals:</strong> {j.quals}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <p><strong>Perks:</strong> {j.benefits}</p>
+                            <p><strong>Compensation:</strong> <span className="bg-green-100 text-green-900 font-bold px-2">{j.pay}</span></p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="md:w-48 flex flex-col justify-center">
+                        <button className={`win95-button w-full py-6 text-xl uppercase font-black ${j.expired ? 'bg-gray-200' : 'bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95'} transition-all`} onClick={() => handleAcceptJob(j)}>
+                          {j.expired ? 'EXPIRED' : 'APPLY'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="win95-button w-full py-10 text-3xl font-black bg-yellow-100 hover:bg-yellow-200 hover:scale-[1.02] active:scale-95 uppercase italic tracking-widest border-4 border-double border-yellow-800 transition-all" onClick={handleGenerateJobs}>REGENERATE CAREER PATHS</button>
+              </div>
+            )}
+
+            {/* MATCHMAKER TAB - IMPROVED SPAM INBOX */}
+            {activeTab === 'matchmaker' && (
+              <div className="space-y-8 relative overflow-hidden h-full">
+                <div className="absolute inset-0 pointer-events-none">
+                  {[...Array(20)].map((_, i) => (
+                    <div key={i} className="absolute animate-bounce" style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, fontSize: `${Math.random() * 40 + 20}px`, animationDuration: `${Math.random() * 3 + 1}s`, opacity: 0.3 }}>❤️</div>
+                  ))}
+                </div>
+                
+                <div className="bg-pink-600 text-white p-4 flex justify-between items-center shadow-lg relative z-10 group">
+                  <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">MATCHMAKER: THE VOID LOVES YOU</h2>
+                  <div 
+                    className="text-xs bg-white text-pink-600 px-3 py-2 font-bold cursor-pointer hover:bg-pink-100 hover:scale-110 transition-all border-2 border-pink-300 shadow-lg min-w-[200px] text-center"
+                    onClick={() => setShowSpamInbox(!showSpamInbox)}
+                  >
+                    <div className="animate-pulse">📬 SPAM INBOX</div>
+                    <div className="text-lg font-black text-pink-700">{spamCount} UNREAD DESIRES</div>
+                  </div>
+                </div>
+
+                {showSpamInbox && (
+                  <div className="absolute right-4 top-20 w-80 h-96 bg-white border-4 border-pink-400 z-50 flex flex-col shadow-2xl">
+                    <div className="bg-pink-600 text-white p-2 flex justify-between items-center">
+                      <span className="text-[10px] font-bold uppercase">💌 Spam-Chat-Bot.exe - {spamCount} messages</span>
+                      <button className="win95-button p-0 px-2 text-xs hover:bg-red-200" onClick={() => setShowSpamInbox(false)}>X</button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-pink-50 font-mono text-[9px]">
+                      {spamMessages.map((msg, i) => (
+                        <div key={i} className={`p-2 rounded shadow-sm border ${msg.sent ? 'bg-blue-100 border-blue-300 ml-8' : 'bg-white border-pink-200 mr-8'} hover:scale-[1.02] transition-transform`}>
+                          {msg.sent ? (
+                            <><span className="text-blue-600 font-bold">You:</span> {msg.text}</>
+                          ) : (
+                            <><span className="text-pink-600 font-bold">User_{Math.floor(Math.random()*999)}:</span> {typeof msg === 'string' ? msg : msg.text}</>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2 border-t-2 border-pink-300 bg-white flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Send a message to the void..." 
+                        className="flex-1 text-[10px] p-2 outline-none border-2 border-pink-200 focus:border-pink-400 transition-colors rounded"
+                        value={spamInput}
+                        onChange={(e) => setSpamInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendSpam()}
+                      />
+                      <button 
+                        className="win95-button px-3 bg-pink-200 hover:bg-pink-300 text-[10px] font-bold"
+                        onClick={handleSendSpam}
+                      >
+                        SEND
+                      </button>
+                    </div>
+                  </div>
                 )}
 
-                {activeTab === 'economy' && (
-                    <div className="flex h-full gap-4">
-                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-blue-50 transition-colors">
-                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-blue-600 transition-colors">ASSETS</h3>
-                            <TickerItem label="PE" />
-                            <TickerItem label="Bonds" />
-                            <TickerItem label="REIT" />
-                            <TickerItem label="VC" />
-                            <TickerItem label="Crypto" />
-                            <TickerItem label="Art" />
-                            <TickerItem label="SMA" />
-                            <TickerItem label="IRA" />
-                        </div>
-
-                        <div className="flex-1 text-center space-y-4 flex flex-col group">
-                            <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 group-hover:scale-105 transition-all">Money Shot Matrix v4.0</h2>
-                            <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
-                                <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
-                                <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1 group-hover:text-green-400 transition-colors">
-                                    <span>T-{timeline.month}</span>
-                                    <span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
-                                    <span>T-{timeline.month}</span>
-                                    <span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset hover:bg-gray-900 transition-colors">
-                                <div className="flex justify-around items-center font-black text-3xl">
-                                    <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform cursor-default`}>
-                                        Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}
-                                    </div>
-                                    <div className="text-blue-500 underline decoration-double hover:text-blue-400 transition-colors cursor-default">INV: ${investment.toLocaleString()}</div>
-                                </div>
-                                <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 shadow-sm hover:text-yellow-300 transition-colors cursor-default">
-                                    BALANCE: ${balance.toLocaleString()}
-                                </div>
-                            </div>
-                            <div className="flex gap-4 justify-center">
-                                <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
-                                <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
-                            </div>
-                            <p className="text-[10px] text-gray-500 italic mt-2 hover:text-gray-400 hover:scale-105 transition-all cursor-help">Unlimited Investment Protocol Active. Timeline Destabilized.</p>
-                        </div>
-
-                        <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
-                            <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600 transition-colors">MARKETS 5,000</h3>
-                            <TickerItem label="S&P 0" />
-                            <TickerItem label="Nasdaq-Void" />
-                            <TickerItem label="Farmland" />
-                            <TickerItem label="Annuity" />
-                            <TickerItem label="Hedge" />
-                            <TickerItem label="Commodity" />
-                            <TickerItem label="Resource" />
-                            <TickerItem label="Retire" />
-                        </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                  {matches.map((m) => (
+                    <div key={m.id} className="win95-window p-4 bg-white border-pink-400 hover:scale-105 hover:shadow-xl transition-all cursor-pointer">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-2xl hover:scale-125 transition-transform">{m.image}</div>
+                        <div className="text-[10px] bg-pink-100 text-pink-800 px-2 font-bold uppercase hover:bg-pink-200 transition-colors">{m.type}</div>
+                      </div>
+                      <div className="text-lg font-black text-pink-700 underline hover:text-pink-500 transition-colors">{m.name} ({m.species})</div>
+                      <div className="text-xs font-bold text-gray-500 mb-2 italic hover:text-gray-700 transition-colors">"{m.bio}"</div>
+                      <div className="win95-inset bg-pink-50 p-2 text-[11px] mb-3 hover:bg-pink-100 transition-colors">
+                        <strong>DESIRE:</strong> {m.desire}
+                      </div>
+                      <button className="win95-button w-full py-2 bg-pink-200 hover:bg-pink-300 hover:scale-[1.02] active:scale-95 font-bold text-xs transition-all" onClick={() => alert(`RELATIONSHIP INITIATED: You and ${m.name} are now in a ${m.type}.`)}>ACCEPT LOVE</button>
                     </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {activeTab === 'artist' && (
-                    <div className="space-y-6 h-full flex flex-col">
-                        <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group hover:bg-purple-700 transition-colors">
-                            <h2 className="font-black text-2xl uppercase tracking-widest text-white italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
-                            <div className="flex items-center gap-2">
-                                {isRecording && (
-                                    <div className="flex items-center gap-2 recording-pulse">
-                                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                        <span className="text-xs font-bold">RECORDING</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Controls */}
-                        <div className="flex justify-center gap-4 flex-wrap">
-                            <button 
-                                onClick={isRecording ? stopRecording : startRecording}
-                                className={`win95-button px-6 py-3 font-black uppercase text-sm hover:scale-105 active:scale-95 transition-all ${isRecording ? 'bg-red-300 hover:bg-red-400' : 'bg-red-100 hover:bg-red-200'}`}
-                            >
-                                {isRecording ? '⏹ STOP RECORDING' : '⏺ START RECORDING'}
-                            </button>
-                            <button 
-                                onClick={playbackRecording}
-                                disabled={isPlaying || recordedNotes.length === 0}
-                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
-                            >
-                                {isPlaying ? '▶ PLAYING...' : '▶ PLAYBACK'}
-                            </button>
-                            <button 
-                                onClick={downloadRecording}
-                                className="win95-button px-6 py-3 font-black uppercase text-sm bg-blue-100 hover:bg-blue-200 hover:scale-105 active:scale-95 transition-all"
-                            >
-                                💾 SAVE TO COMPUTER
-                            </button>
-                        </div>
-
-                        {/* Keyboard instructions */}
-                        <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
-                            <strong className="group-hover:text-blue-600 transition-colors">KEYBOARD SHORTCUTS:</strong> 
-                            <span className="group-hover:text-gray-800 transition-colors"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
-                        </div>
-
-                        {/* Piano Keyboard */}
-                        <div className="flex-1 flex items-center justify-center">
-                            <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
-                                <div className="relative flex">
-                                    {/* White keys */}
-                                    {whiteKeys.map((note, idx) => (
-                                        <div
-                                            key={note}
-                                            onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
-                                            onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
-                                            onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
-                                            className={`piano-key-white w-12 h-40 mx-[1px] flex items-end justify-center pb-2 select-none ${activeKeys.has(note) ? 'active' : ''}`}
-                                        >
-                                            <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-700 transition-colors">{note}</span>
-                                        </div>
-                                    ))}
-                                    
-                                    {/* Black keys */}
-                                    {blackKeys.map(({ note, position }) => (
-                                        <div
-                                            key={note}
-                                            onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
-                                            onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
-                                            onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
-                                            className={`piano-key-black absolute w-8 h-24 select-none ${activeKeys.has(note) ? 'active' : ''}`}
-                                            style={{ left: `${position * 50 + 34}px` }}
-                                        >
-                                            <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-bold text-gray-400">{note}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Recording info */}
-                        <div className="win95-inset bg-gray-50 p-3 text-center hover:bg-blue-50 hover:shadow-md transition-all group">
-                            <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700 transition-colors">
-                                {recordedNotes.length > 0 ? (
-                                    <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</>
-                                ) : (
-                                    <>🎵 Start recording and play some notes to create your masterpiece!</>
-                                )}
-                            </div>
-                            <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700 transition-colors">
-                                Your compositions will be tied to your profile and available as a shareable audio URL
-                            </div>
-                        </div>
+            {/* ECONOMY TAB */}
+            {activeTab === 'economy' && (
+              <div className="flex h-full gap-4">
+                <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-blue-50 transition-colors">
+                  <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-blue-600">ASSETS</h3>
+                  {['PE', 'Bonds', 'REIT', 'VC', 'Crypto', 'Art', 'SMA', 'IRA'].map(l => <TickerItem key={l} label={l} />)}
+                </div>
+                <div className="flex-1 text-center space-y-4 flex flex-col group">
+                  <h2 className="font-black text-2xl text-blue-900 uppercase italic tracking-tighter group-hover:text-green-600 transition-all">Money Shot Matrix v4.0</h2>
+                  <div className="relative p-2 bg-[#111] win95-window mx-auto w-full max-w-[500px] hover:border-green-500 transition-colors cursor-crosshair">
+                    <canvas ref={canvasRef} width="500" height="250" className="market-graph block w-full"></canvas>
+                    <div className="absolute bottom-1 left-0 right-0 text-[10px] text-white flex justify-around font-mono bg-black bg-opacity-50 px-2 py-1">
+                      <span>T-{timeline.month}</span><span>Y:{timeline.year > 0 ? '+' : ''}{timeline.year.toLocaleString()}</span>
                     </div>
-                )}
-            </div>
+                  </div>
+                  <div className="flex flex-col gap-2 py-4 bg-black text-green-500 win95-inset">
+                    <div className="flex justify-around items-center font-black text-3xl">
+                      <div className={`${profit >= 0 ? 'text-green-400' : 'text-red-500'} hover:scale-110 transition-transform`}>Value: {profit >= 0 ? '+' : ''}${profit.toLocaleString()}</div>
+                      <div className="text-blue-500 underline hover:text-blue-400">INV: ${investment.toLocaleString()}</div>
+                    </div>
+                    <div className="text-yellow-400 text-4xl font-black border-t border-gray-800 pt-2 hover:text-yellow-300">BALANCE: ${balance.toLocaleString()}</div>
+                  </div>
+                  <div className="flex gap-4 justify-center">
+                    <button className="win95-button px-8 py-3 bg-green-200 hover:bg-green-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setInvestment(i => i + 1000000); setBalance(b => b - 1000000); }}>INF_INVEST +$1M</button>
+                    <button className="win95-button px-8 py-3 bg-red-200 hover:bg-red-300 font-black uppercase text-lg hover:scale-105 active:scale-95 transition-all" onClick={() => { setBalance(b => b + profit + investment); setInvestment(0); setProfit(0); }}>CASH OUT ALL</button>
+                  </div>
+                </div>
+                <div className="w-48 space-y-2 overflow-y-auto win95-inset bg-gray-100 p-2 text-[10px] font-mono group hover:bg-red-50 transition-colors">
+                  <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600">MARKETS 5,000</h3>
+                  {['S&P 0', 'Nasdaq-Void', 'Farmland', 'Annuity', 'Hedge', 'Commodity', 'Resource', 'Retire'].map(l => <TickerItem key={l} label={l} />)}
+                </div>
+              </div>
+            )}
+
+            {/* ARTIST TAB */}
+            {activeTab === 'artist' && (
+              <div className="space-y-6 h-full flex flex-col">
+                <div className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-lg group hover:bg-purple-700 transition-colors">
+                  <h2 className="font-black text-2xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">🎹 Musicianship Studio v1.0</h2>
+                  {isRecording && <div className="flex items-center gap-2 recording-pulse"><div className="w-3 h-3 bg-red-500 rounded-full"></div><span className="text-xs font-bold">RECORDING</span></div>}
+                </div>
+                <div className="flex justify-center gap-4 flex-wrap">
+                  <button onClick={isRecording ? stopRecording : startRecording} className={`win95-button px-6 py-3 font-black uppercase text-sm hover:scale-105 active:scale-95 transition-all ${isRecording ? 'bg-red-300 hover:bg-red-400' : 'bg-red-100 hover:bg-red-200'}`}>
+                    {isRecording ? '⏹ STOP RECORDING' : '⏺ START RECORDING'}
+                  </button>
+                  <button onClick={playbackRecording} disabled={isPlaying || recordedNotes.length === 0} className="win95-button px-6 py-3 font-black uppercase text-sm bg-green-100 hover:bg-green-200 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+                    {isPlaying ? '▶ PLAYING...' : '▶ PLAYBACK'}
+                  </button>
+                  <button onClick={downloadRecording} className="win95-button px-6 py-3 font-black uppercase text-sm bg-blue-100 hover:bg-blue-200 hover:scale-105 active:scale-95 transition-all">💾 SAVE TO COMPUTER</button>
+                </div>
+                <div className="text-center text-xs text-gray-600 bg-yellow-50 p-3 win95-inset hover:bg-yellow-100 hover:shadow-md transition-all cursor-help group">
+                  <strong className="group-hover:text-blue-600">KEYBOARD SHORTCUTS:</strong> 
+                  <span className="group-hover:text-gray-800"> Use keys A-L for white keys, W-P for black keys • Click keys or use keyboard to play</span>
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="relative bg-gradient-to-b from-gray-800 to-gray-900 p-4 rounded-lg shadow-2xl hover:shadow-[0_0_30px_rgba(147,51,234,0.3)] transition-shadow">
+                    <div className="relative flex">
+                      {whiteKeys.map((note) => (
+                        <div key={note} onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
+                          onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                          onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                          className={`piano-key-white w-12 h-40 mx-[1px] flex items-end justify-center pb-2 select-none ${activeKeys.has(note) ? 'active' : ''}`}>
+                          <span className="text-[10px] font-bold text-gray-500">{note}</span>
+                        </div>
+                      ))}
+                      {blackKeys.map(({ note, position }) => (
+                        <div key={note} onMouseDown={() => { playNote(note); setActiveKeys(prev => new Set([...prev, note])); }}
+                          onMouseUp={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                          onMouseLeave={() => setActiveKeys(prev => { const s = new Set(prev); s.delete(note); return s; })}
+                          className={`piano-key-black absolute w-8 h-24 select-none ${activeKeys.has(note) ? 'active' : ''}`}
+                          style={{ left: `${position * 50 + 34}px` }}>
+                          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[8px] font-bold text-gray-400">{note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="win95-inset bg-gray-50 p-3 text-center hover:bg-blue-50 hover:shadow-md transition-all group">
+                  <div className="text-sm font-bold text-gray-700 group-hover:text-blue-700">
+                    {recordedNotes.length > 0 ? <>📝 {recordedNotes.length} notes recorded • Ready to save or playback</> : <>🎵 Start recording and play some notes to create your masterpiece!</>}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1 group-hover:text-gray-700">Your compositions will be tied to your profile and available as a shareable audio URL</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         <FooterTickers />
@@ -740,37 +710,30 @@ export default function Explore() {
 }
 
 function TickerItem({ label }) {
-    const [val, setVal] = useState(Math.random() * 10000);
-    useEffect(() => {
-        const i = setInterval(() => setVal(v => v + (Math.random() - 0.5) * 500), 150);
-        return () => clearInterval(i);
-    }, []);
-    return (
-        <div className="flex justify-between border-b border-gray-200 py-1 group/ticker hover:bg-white hover:px-1 transition-all cursor-crosshair">
-            <span className="group-hover/ticker:text-blue-600 group-hover/ticker:font-bold transition-all">{label}:</span>
-            <span className={`${val > 5000 ? 'text-green-600' : 'text-red-600'} group-hover/ticker:scale-110 transition-transform`}>${val.toFixed(0)}</span>
-        </div>
-    );
+  const [val, setVal] = useState(Math.random() * 10000);
+  useEffect(() => {
+    const i = setInterval(() => setVal(v => v + (Math.random() - 0.5) * 500), 150);
+    return () => clearInterval(i);
+  }, []);
+  return (
+    <div className="flex justify-between border-b border-gray-200 py-1 group/ticker hover:bg-white hover:px-1 transition-all cursor-crosshair">
+      <span className="group-hover/ticker:text-blue-600 group-hover/ticker:font-bold transition-all">{label}:</span>
+      <span className={`${val > 5000 ? 'text-green-600' : 'text-red-600'} group-hover/ticker:scale-110 transition-transform`}>${val.toFixed(0)}</span>
+    </div>
+  );
 }
 
 function FooterTickers() {
   const [tasks, setTasks] = useState(0);
   const [memory, setMemory] = useState(0);
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTasks(Math.floor(Math.random() * 999));
-      setMemory(Math.floor(Math.random() * 64000));
-    }, 1000);
+    const interval = setInterval(() => { setTasks(Math.floor(Math.random() * 999)); setMemory(Math.floor(Math.random() * 64000)); }, 1000);
     return () => clearInterval(interval);
   }, []);
-
   return (
     <div className="p-3 text-[11px] text-gray-800 flex justify-between bg-[#c0c0c0] font-mono border-t-2 border-gray-400">
       <div className="flex gap-8">
-        <span className="flex items-center gap-2 font-bold hover:text-red-600 hover:scale-105 transition-all cursor-help" title="Synchronization Errors">
-          <div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div> SYNC_ERR: {tasks}
-        </span>
+        <span className="flex items-center gap-2 font-bold hover:text-red-600 hover:scale-105 transition-all cursor-help" title="Synchronization Errors"><div className="w-3 h-3 bg-red-600 rounded-full animate-ping"></div> SYNC_ERR: {tasks}</span>
         <span className="font-bold hover:text-blue-600 hover:scale-105 transition-all cursor-help" title="RAM Usage">RAM_USE: {memory}KB</span>
       </div>
       <div className="flex gap-4 italic font-bold">
