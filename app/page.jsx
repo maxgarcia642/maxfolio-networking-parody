@@ -51,6 +51,7 @@ export default function Home() {
     { title: "Jobs", icon: "💼", desc: "Available Jobs", onClick: () => window.location.href = '/explore?tab=jobs' },
     { title: "Matchmaker", icon: "❤️", desc: "The Void Loves You", onClick: () => window.location.href = '/explore?tab=matchmaker' },
     { title: "The Markets", icon: "💹", desc: "Market 5,000", onClick: () => window.location.href = '/explore?tab=economy' },
+    { title: "Opinions", icon: "💡", desc: "Idea Sharing Platform", onClick: () => window.location.href = '/explore?tab=thoughts' },
     { title: "Musicianship", icon: "🎹", desc: "Sonic Creator", onClick: () => window.location.href = '/explore?tab=artist' },
     { title: "Help", icon: "❓", desc: "External Docs", onClick: () => window.location.href = 'https://maxgarcia642.github.io/' },
   ];
@@ -105,26 +106,50 @@ export default function Home() {
                 </div>
             </div>
 
-            {/* Square grid: 5 columns, 2 rows for 10 items */}
-            <div className="grid grid-cols-5 grid-rows-2 gap-3 md:gap-4 flex-1 px-2">
-                {channels.map((ch, idx) => (
-                    <div 
-                        key={idx}
-                        onClick={ch.onClick}
-                        className={`
-                            relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
-                            border-2 border-white/80 flex flex-col items-center justify-center cursor-pointer
-                            hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
-                            aspect-square
-                            ${idx === 8 ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' : ''}
-                        `}
-                    >
-                        <div className="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition-transform">{ch.icon}</div>
-                        <div className="text-[8px] md:text-[10px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-1">{ch.title}</div>
-                        <div className="text-[7px] md:text-[8px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors">{ch.desc}</div>
-                        <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
-                    </div>
-                ))}
+            {/* Row 1: 5 items, Row 2: 6 items (smaller) */}
+            <div className="flex flex-col gap-3 md:gap-4 flex-1 px-2">
+                {/* First row - 5 items */}
+                <div className="grid grid-cols-5 gap-3 md:gap-4">
+                    {channels.slice(0, 5).map((ch, idx) => (
+                        <div 
+                            key={idx}
+                            onClick={ch.onClick}
+                            className={`
+                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
+                                border-2 border-white/80 flex flex-col items-center justify-center cursor-pointer
+                                hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
+                                aspect-square
+                            `}
+                        >
+                            <div className="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition-transform">{ch.icon}</div>
+                            <div className="text-[8px] md:text-[10px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-1">{ch.title}</div>
+                            <div className="text-[7px] md:text-[8px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors">{ch.desc}</div>
+                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
+                        </div>
+                    ))}
+                </div>
+                {/* Second row - 6 items (smaller to fit new Opinions option) */}
+                <div className="grid grid-cols-6 gap-2 md:gap-3">
+                    {channels.slice(5).map((ch, idx) => (
+                        <div 
+                            key={idx + 5}
+                            onClick={ch.onClick}
+                            className={`
+                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
+                                border-2 border-white/80 flex flex-col items-center justify-center cursor-pointer
+                                hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
+                                aspect-square
+                                ${ch.title === 'Musicianship' ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' : ''}
+                                ${ch.title === 'Opinions' ? 'bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200' : ''}
+                            `}
+                        >
+                            <div className="text-xl md:text-2xl mb-0.5 group-hover:scale-110 transition-transform">{ch.icon}</div>
+                            <div className="text-[7px] md:text-[9px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-0.5">{ch.title}</div>
+                            <div className="text-[6px] md:text-[7px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors text-center px-0.5">{ch.desc}</div>
+                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <div className="mt-4 flex justify-center z-20 group cursor-pointer" onClick={() => window.location.reload()}>

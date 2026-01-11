@@ -21,9 +21,9 @@ export async function POST(request) {
     }
     
     await query(
-      `INSERT INTO profiles (username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [username, password, job || '', bio || '', skills || '', portfolio_url || '', audio_url || null, 1000, 1000]
+      `INSERT INTO profiles (username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth, interactivity_points) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [username, password, job || '', bio || '', skills || '', portfolio_url || '', audio_url || null, 1000, 1000, 0]
     );
     
     console.log('Profile created:', username);
@@ -69,7 +69,7 @@ export async function GET() {
     
     // Get all profiles
     const profilesRes = await query(
-      `SELECT username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth, created_at 
+      `SELECT username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth, interactivity_points, created_at 
        FROM profiles 
        ORDER BY created_at DESC 
        LIMIT 50`
@@ -124,6 +124,7 @@ export async function GET() {
       ...p,
       balance: p.balance || 1000,
       net_worth: p.net_worth || 1000,
+      interactivity_points: p.interactivity_points || 0,
       jobs: jobsMap[p.username] || [],
       relationships: relationshipsMap[p.username] || [],
       songs: songsMap[p.username] || [],
@@ -150,6 +151,7 @@ export async function GET() {
           ...r, 
           balance: 1000, 
           net_worth: 1000,
+          interactivity_points: 0,
           jobs: [],
           relationships: [],
           songs: [],
