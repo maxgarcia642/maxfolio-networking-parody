@@ -189,7 +189,7 @@ export async function POST(request) {
         success: true, 
         previousNetWorth: currentNetWorth,
         newNetWorth: newNetWorth,
-        message: 'Thank you for your contribution to the Galactic Federation'
+        message: 'Thank you for your contribution to the Ecosysocietym'
       });
     }
     

@@ -619,10 +619,10 @@ export default function Explore() {
   // Pipeline: Generate initial posts and keep them flowing
   useEffect(() => {
     if (activeTab === 'thoughts') {
-      // Generate initial posts
-      const initialPosts = Array.from({ length: 15 }, () => ({
+      // Generate initial posts with more replies
+      const initialPosts = Array.from({ length: 20 }, () => ({
         ...generateOpinion(),
-        replies: Math.random() > 0.6 ? Array.from({ length: Math.floor(Math.random() * 4) + 1 }, () => generateReply()) : []
+        replies: Math.random() > 0.3 ? Array.from({ length: Math.floor(Math.random() * 6) + 2 }, () => generateReply()) : []
       }));
       setPipelinePosts(initialPosts);
       
@@ -630,9 +630,9 @@ export default function Explore() {
       const postInterval = setInterval(() => {
         const newPost = {
           ...generateOpinion(),
-          replies: Math.random() > 0.7 ? Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => generateReply()) : []
+          replies: Math.random() > 0.4 ? Array.from({ length: Math.floor(Math.random() * 5) + 1 }, () => generateReply()) : []
         };
-        setPipelinePosts(prev => [...prev.slice(-30), newPost]); // Keep max 30 posts, add new at end
+        setPipelinePosts(prev => [...prev.slice(-24), newPost]); // Keep max 25 posts, add new at end (bottom)
       }, 3500);
       
       return () => clearInterval(postInterval);
@@ -669,7 +669,7 @@ export default function Explore() {
       replies: []
     };
     
-    setPipelinePosts(prev => [...prev, newPost]);
+    setPipelinePosts(prev => [...prev.slice(-24), newPost]); // Keep max 25 posts, add new at end (bottom)
     setNewPostContent('');
     setNewPostType('text');
     setShowNewPostModal(false);
@@ -788,7 +788,7 @@ export default function Explore() {
       
       if (data.success) {
         await refreshCurrentUser();
-        alert(`💸 $100K deducted from your net worth!\n\nPrevious: $${data.previousNetWorth.toLocaleString()}\nNew: $${data.newNetWorth.toLocaleString()}\n\n+0.1 Interactivity Points awarded!\n\n${data.message}`);
+        alert(`💸 $100K deducted from your net worth!\n\nPrevious: $${data.previousNetWorth.toLocaleString()}\nNew: $${data.newNetWorth.toLocaleString()}\n\n+0.1 Interactivity Points awarded!\n\nThank you for your contribution to the Ecosysocietym`);
       }
     } catch (e) {
       alert('Transaction failed. The Galactic Federation is experiencing technical difficulties.');
@@ -1422,14 +1422,6 @@ export default function Explore() {
                   </div>
                 )}
 
-                {/* $100K Button */}
-                <button 
-                  onClick={handleHundredKInteraction}
-                  className="win95-button w-full py-3 bg-gradient-to-r from-red-100 to-orange-100 hover:from-red-200 hover:to-orange-200 hover:scale-[1.01] active:scale-[0.99] transition-all text-[10px] font-bold text-gray-700 leading-tight border-2 border-red-300"
-                >
-                  💰 $100K for Idea Agreement / Disagreement Terms & Conditions Apply + Support Fraud Donation Fund + Prediction Betting + Social Credit Subscription Tip + Taxes and Tariffs for the Galactic Federation + Interactivity Points
-                </button>
-
                 {/* Post Feed - flows bottom to top */}
                 <div 
                   ref={pipelineContainerRef}
@@ -1481,19 +1473,27 @@ export default function Explore() {
                         </div>
 
                         {/* Post actions */}
-                        <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50">
-                          <button 
-                            onClick={() => handleBlockPost(post.id)}
-                            className="text-[9px] bg-red-100 hover:bg-red-200 px-2 py-1 rounded font-bold text-red-700 hover:scale-105 transition-all"
-                          >
-                            🚫 Block this block
-                          </button>
-                          <button 
-                            onClick={() => setShowReplyModal(post.id)}
-                            className="text-[9px] bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded font-bold text-blue-700 hover:scale-105 transition-all"
-                          >
-                            💬 Reply
-                          </button>
+                        <div className="flex flex-col gap-1 p-2 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center justify-between gap-1">
+                            <button 
+                              onClick={() => handleBlockPost(post.id)}
+                              className="text-[8px] bg-red-100 hover:bg-red-200 px-2 py-1 rounded font-bold text-red-700 hover:scale-105 transition-all"
+                            >
+                              🚫 Block This Block
+                            </button>
+                            <button 
+                              onClick={handleHundredKInteraction}
+                              className="flex-1 text-[6px] bg-gradient-to-r from-orange-100 to-yellow-100 hover:from-orange-200 hover:to-yellow-200 px-1 py-1 rounded font-bold text-orange-800 hover:scale-[1.02] transition-all leading-tight text-center"
+                            >
+                              💰 $100K for Idea Agreement / Disagreement Terms & Conditions Apply + Support Fraud Donation Fund + Prediction Betting + Creator Social Credit Subscription Tip + Taxes on Tariffs from the Galactic Federation + Fractional Interactivity Tokens
+                            </button>
+                            <button 
+                              onClick={() => setShowReplyModal(post.id)}
+                              className="text-[8px] bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded font-bold text-blue-700 hover:scale-105 transition-all"
+                            >
+                              💬 Reply
+                            </button>
+                          </div>
                         </div>
                       </div>
 
