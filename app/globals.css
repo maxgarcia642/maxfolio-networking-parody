@@ -280,3 +280,36 @@ body::after {
 .music-credit a:hover {
   color: #fff;
 }
+
+/* Mobile-friendly scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #a0a0a0;
+  border-radius: 3px;
+}
+
+/* Hide scrollbar on mobile but keep functionality */
+@media (max-width: 640px) {
+  .scrollbar-thin {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 640px) {
+  .win95-button {
+    min-height: 32px;
+    padding: 6px 8px;
+  }
+}
