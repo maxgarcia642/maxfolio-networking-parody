@@ -13,6 +13,7 @@ A comedic, minimalist portfolio generator with a nostalgic Windows 95/Vista/Wii 
 - 💹 **Economy Matrix** - Watch a chaotic market graph with temporal instability
 - ❤️ **Matchmaker** - Find love among sentient toasters and quantum entities
 - 🖼️ **Windows 95 Aesthetic** - Authentic retro UI with modern interactions
+- More!
 
 ## 🚀 Quick Start
 
@@ -143,7 +144,7 @@ Accept a job listing
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to submit issues and pull requests.
+Contributions are welcome! Feel free to provide feedback.
 
 ## 📄 License
 
