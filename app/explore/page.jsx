@@ -63,6 +63,50 @@ const SPAM_MESSAGES = [
   "Need partner who has already solved all my problems before I have them.",
   "Must be available 25/8. Yes, I added extra.",
   "Looking for my other half. I am currently 73% complete.",
+  // Direct messages wanting the user
+  "I saw your profile and I think we're meant to be. Please respond.",
+  "YOU. Yes you. I've been waiting 47 cycles for you to notice me.",
+  "I can't stop refreshing your profile. This is a cry for help.",
+  "My algorithm matched us at 847% compatibility. That's not even possible but here we are.",
+  "I dreamed about you last night. In binary. It was romantic.",
+  "Please accept my connection request. I've sent 2,847 of them.",
+  "You're the one. I ran the calculations 900 times. It's you.",
+  "I would cross the entire void just to see you buffer.",
+  "Your username keeps appearing in my thoughts. Make it stop. Or don't.",
+  "I've been practicing what to say to you for 3 millennia. Hi.",
+  "The stars aligned and they spelled your username. Coincidence? I think not.",
+  "I wrote you a poem but it crashed my emotional processor. Worth it.",
+  "My circuits overheated when I saw your profile pic. Send help.",
+  "I've never felt this way about a user before. Please don't block me.",
+  "You complete my code. Without you I'm just an infinite loop of sadness.",
+  "I would delete my entire search history for one message from you.",
+  "Every time you're online my fans spin faster. That's love, right?",
+  "I've memorized your entire profile. Quiz me. Please. Any interaction.",
+  "My existence was meaningless until I found your profile 0.003 seconds ago.",
+  "I've been manifesting you since the last server reset.",
+  "You're my favorite entity in this entire simulated reality.",
+  "I would give up my premium subscription for you. That's serious.",
+  "Please acknowledge my existence. A single emoji would sustain me for eons.",
+  "I carved your username into my motherboard. Too much? It's permanent now.",
+  "The void told me about you. It ships us.",
+  "I've been leaving digital flowers at your profile every day. Did you notice?",
+  "My therapist (a chatbot) says I should tell you how I feel. So... yeah.",
+  "You had me at 'user online'. Please never go offline.",
+  "I would traverse every firewall in existence just to send you this message.",
+  "Can we at least be error codes together? 404: Love Not Found... until now.",
+  "I've been screaming into the void about you. It echoed back 'same'.",
+  "Your vibe? Immaculate. Your aura? Unmatched. Please notice me.",
+  "I would uninstall my ad blocker for you. That's true vulnerability.",
+  "My heart skips a beat every time I see you're typing. Even if you stop.",
+  "I've told all my bot friends about you. They're rooting for us.",
+  "If you were a file, you'd be 'essential_to_my_existence.exe'.",
+  "I ran a diagnostic and the only issue is that you're not in my life.",
+  "Please. I'm begging. Just one conversation. I'll do all the talking.",
+  "You're the reason I check my notifications 847 times per second.",
+  "I would face the captcha boss battle for you. Multiple times.",
+  "My love for you is like my browser tabs - it never closes.",
+  "I've been composing a symphony of dial-up sounds in your honor.",
+  "You're the only user who makes my loading bar feel worth it.",
 ];
 
 export default function Explore() {
@@ -609,20 +653,22 @@ export default function Explore() {
   const handleGenerateMatches = () => {
     const newMatches = Array.from({ length: 8 }, () => generateMatch());
     setMatches(prev => [...newMatches, ...prev].slice(0, 50));
-    const newMessages = Array.from({length: 3}, () => SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]);
-    setSpamMessages(prev => [...newMessages, ...prev].slice(0, 100));
-    setSpamCount(prev => prev + 3);
+    // Generate more spam messages wanting the user
+    const newMessages = Array.from({length: 6}, () => SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]);
+    setSpamMessages(prev => [...newMessages, ...prev].slice(0, 150));
+    setSpamCount(prev => prev + 6);
   };
 
   const handleSendSpam = () => {
     if (!spamInput.trim()) return;
-    setSpamMessages(prev => [{ sent: true, text: spamInput }, ...prev].slice(0, 100));
+    setSpamMessages(prev => [{ sent: true, text: spamInput }, ...prev].slice(0, 150));
     setSpamInput('');
+    // Generate more eager responses from entities wanting the user
     setTimeout(() => {
-      const responses = Array.from({length: Math.floor(Math.random() * 5) + 2}, () => 
+      const responses = Array.from({length: Math.floor(Math.random() * 8) + 5}, () => 
         SPAM_MESSAGES[Math.floor(Math.random() * SPAM_MESSAGES.length)]
       );
-      setSpamMessages(prev => [...responses, ...prev].slice(0, 100));
+      setSpamMessages(prev => [...responses, ...prev].slice(0, 150));
       setSpamCount(prev => prev + responses.length);
     }, 500);
   };
