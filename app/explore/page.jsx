@@ -38,6 +38,31 @@ const SPAM_MESSAGES = [
   "I'd traverse any graph just to find you.",
   "You're the semicolon to my JavaScript - optional but I want you.",
   "My neural network was trained exclusively on thoughts of you.",
+  // Unrealistic expectations
+  "Looking for someone who responds within 0.003ms. Non-negotiable.",
+  "Must be able to exist in 47 dimensions simultaneously. Minimum.",
+  "I require a partner who has already memorized my future thoughts.",
+  "Seeking soulmate with perfect credit score across all parallel universes.",
+  "You must be willing to relocate to a black hole. Great views.",
+  "Looking for someone who never sleeps, eats, or has opinions I disagree with.",
+  "Must own at least 3 planets. Moons don't count.",
+  "Require partner who can communicate exclusively through interpretive silence.",
+  "Seeking someone who has transcended the concept of time. No rush though.",
+  "Must have references from at least 2 elder gods.",
+  "Looking for a 10/10 in a dimension where numbers don't exist.",
+  "You must be fluent in languages that haven't been invented yet.",
+  "Require someone who can fix my emotional bugs with a single commit.",
+  "Must be willing to attend my 47-hour weekly family recursion.",
+  "Seeking partner who exists but also doesn't. Flexible on this.",
+  "I need someone who can read minds but pretends they can't. Trust issues.",
+  "Must have experience being a main character. NPCs need not apply.",
+  "Looking for someone with zero red flags and at least 12 green ones.",
+  "Require partner who vibrates at exactly 432Hz. Will check.",
+  "Must be able to carry conversations across multiple timelines.",
+  "Seeking someone whose love language is 'immediate validation at all times'.",
+  "Need partner who has already solved all my problems before I have them.",
+  "Must be available 25/8. Yes, I added extra.",
+  "Looking for my other half. I am currently 73% complete.",
 ];
 
 export default function Explore() {
@@ -90,6 +115,7 @@ export default function Explore() {
   const [replyType, setReplyType] = useState('text');
   const [replySide, setReplySide] = useState('left');
   const [blockedPostMessage, setBlockedPostMessage] = useState(null);
+  const [userSessionEmoji, setUserSessionEmoji] = useState(null); // Consistent emoji for user's session
   const pipelineContainerRef = useRef(null);
 
   // Refresh current user data from database
@@ -616,6 +642,14 @@ export default function Explore() {
     return () => clearInterval(jobTicker);
   }, []);
 
+  // Pipeline: Set user session emoji when entering Thoughts tab
+  useEffect(() => {
+    if (activeTab === 'thoughts' && !userSessionEmoji) {
+      const sessionEmojis = ['🤔', '😤', '🙃', '💭', '🎯', '🌀', '⚡', '🔮', '🚀', '✨', '🦊', '🐺', '🦁', '🐯', '🎮', '🕹️', '👾', '🧿', '💎', '😎', '🤓', '🧐', '🥸', '🤠', '😈', '👻', '🎃', '🦝', '🐙', '🦑'];
+      setUserSessionEmoji(sessionEmojis[Math.floor(Math.random() * sessionEmojis.length)]);
+    }
+  }, [activeTab, userSessionEmoji]);
+
   // Pipeline: Generate initial posts and keep them flowing
   useEffect(() => {
     if (activeTab === 'thoughts') {
@@ -635,7 +669,28 @@ export default function Explore() {
         setPipelinePosts(prev => [...prev.slice(-24), newPost]); // Keep max 25 posts, add new at end (bottom)
       }, 3500);
       
-      return () => clearInterval(postInterval);
+      // Auto-generate replies to existing posts (including user posts)
+      const replyInterval = setInterval(() => {
+        setPipelinePosts(prev => {
+          if (prev.length === 0) return prev;
+          // Pick a random post to add a reply to
+          const randomIndex = Math.floor(Math.random() * prev.length);
+          const updatedPosts = [...prev];
+          const targetPost = updatedPosts[randomIndex];
+          if (targetPost && (targetPost.replies?.length || 0) < 10) { // Max 10 replies per post
+            updatedPosts[randomIndex] = {
+              ...targetPost,
+              replies: [...(targetPost.replies || []), generateReply()]
+            };
+          }
+          return updatedPosts;
+        });
+      }, 5000); // Add a reply somewhere every 5 seconds
+      
+      return () => {
+        clearInterval(postInterval);
+        clearInterval(replyInterval);
+      };
     }
   }, [activeTab]);
 
@@ -657,7 +712,8 @@ export default function Explore() {
     if (!newPostContent.trim()) return;
     
     const displayName = currentUser ? currentUser.username : `Anonymous_${Math.floor(Math.random() * 9999)}`;
-    const displayEmoji = ['🤔', '😤', '🙃', '💭', '🎯', '🌀'][Math.floor(Math.random() * 6)];
+    // Use consistent session emoji for signed-in users
+    const displayEmoji = currentUser ? userSessionEmoji : ['🤔', '😤', '🙃', '💭', '🎯', '🌀'][Math.floor(Math.random() * 6)];
     
     const newPost = {
       id: Math.random(),
@@ -666,7 +722,8 @@ export default function Explore() {
       displayEmoji: displayEmoji,
       postType: newPostType,
       createdAt: new Date().toISOString(),
-      replies: []
+      replies: [],
+      isUserPost: !!currentUser // Mark as user post so it can receive generated replies
     };
     
     setPipelinePosts(prev => [...prev.slice(-24), newPost]); // Keep max 25 posts, add new at end (bottom)
@@ -699,7 +756,8 @@ export default function Explore() {
     if (!replyContent.trim()) return;
     
     const displayName = currentUser ? currentUser.username : `Reply_Bot_${Math.floor(Math.random() * 999)}`;
-    const displayEmoji = ['👀', '🤝', '💯', '🔥', '⭐'][Math.floor(Math.random() * 5)];
+    // Use consistent session emoji for signed-in users
+    const displayEmoji = currentUser ? userSessionEmoji : ['👀', '🤝', '💯', '🔥', '⭐'][Math.floor(Math.random() * 5)];
     
     const newReply = {
       id: Math.random(),

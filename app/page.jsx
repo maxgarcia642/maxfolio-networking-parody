@@ -140,7 +140,6 @@ export default function Home() {
                                 hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
                                 aspect-square
                                 ${ch.title === 'Musicianship' ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' : ''}
-                                ${ch.title === 'Opinions' ? 'bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200' : ''}
                             `}
                         >
                             <div className="text-xl md:text-2xl mb-0.5 group-hover:scale-110 transition-transform">{ch.icon}</div>
