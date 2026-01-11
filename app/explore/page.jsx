@@ -944,7 +944,7 @@ export default function Explore() {
   const userTotalNotes = getTotalNotes(userSongs);
 
   return (
-    <div className="p-8 flex flex-col items-center min-h-screen">
+    <div className="p-2 sm:p-4 md:p-8 flex flex-col items-center min-h-screen">
       {isShrunk && (
         <div className="fixed inset-0 bg-black bg-opacity-80 z-[100] flex items-center justify-center cursor-pointer group" onClick={() => setIsShrunk(false)}>
           <div className="bg-white p-8 border-4 border-gray-400 text-center space-y-4 hover:border-blue-400 hover:scale-105 transition-all shadow-2xl">
@@ -972,20 +972,20 @@ export default function Explore() {
           </div>
         </div>
         
-        <div className="bg-[#c0c0c0] p-1 border-b-2 border-gray-600 flex gap-1 flex-wrap">
-          <button onClick={() => window.location.href = '/'} className="win95-button text-[10px] px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all">← Main Menu</button>
+        <div className="bg-[#c0c0c0] p-1 border-b-2 border-gray-600 flex gap-1 overflow-x-auto scrollbar-thin">
+          <button onClick={() => window.location.href = '/'} className="win95-button text-[8px] sm:text-[10px] px-2 sm:px-4 uppercase tracking-tighter bg-blue-100 hover:bg-blue-200 hover:scale-105 transition-all whitespace-nowrap flex-shrink-0">← Menu</button>
           {[
             {id: 'signin', label: currentUser ? 'My Profile' : 'Sign In', icon: '🔐'},
             {id: 'users', label: 'Active Users', icon: '👥'},
-            {id: 'jobs', label: 'Available Jobs', icon: '💼'},
-            {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
+            {id: 'jobs', label: 'Jobs', icon: '💼'},
+            {id: 'matchmaker', label: 'Match', icon: '❤️'},
             {id: 'economy', label: 'Economy', icon: '💹'},
             {id: 'thoughts', label: 'Thoughts', icon: '💡'},
             {id: 'artist', label: 'Artist', icon: '🎹'}
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
-              className={`win95-button text-[10px] px-4 uppercase tracking-tighter hover:bg-gray-100 hover:scale-105 transition-all ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}>
-              {tab.icon} {tab.label}
+              className={`win95-button text-[8px] sm:text-[10px] px-2 sm:px-4 uppercase tracking-tighter hover:bg-gray-100 hover:scale-105 transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id ? 'shadow-[inset_3px_3px_#404040] bg-gray-400' : ''}`}>
+              {tab.icon} <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -1492,32 +1492,31 @@ export default function Explore() {
                 )}
 
                 {/* Fake URL Bar */}
-                <div className="win95-inset bg-white p-1 flex items-center gap-2">
-                  <span className="text-[10px] text-gray-500 px-2">🔒</span>
-                  <div className="flex-1 bg-gray-100 px-2 py-1 text-[11px] font-mono text-gray-600 truncate">
-                    https://pipeline.void/thoughts/feed?user={currentUser?.username || 'anonymous'}&session={Math.floor(Math.random() * 99999)}
+                <div className="win95-inset bg-white p-1 flex items-center gap-1 sm:gap-2">
+                  <span className="text-[8px] sm:text-[10px] text-gray-500 px-1 sm:px-2">🔒</span>
+                  <div className="flex-1 bg-gray-100 px-1 sm:px-2 py-1 text-[8px] sm:text-[11px] font-mono text-gray-600 truncate">
+                    https://pipeline.void/thoughts/feed?user={currentUser?.username || 'anon'}
                   </div>
-                  <button className="text-[10px] px-2 hover:bg-gray-200 transition-colors">🔄</button>
+                  <button className="text-[8px] sm:text-[10px] px-1 sm:px-2 hover:bg-gray-200 transition-colors">🔄</button>
                 </div>
                 
                 {/* Header */}
-                <div className="bg-gradient-to-r from-amber-600 to-yellow-500 text-white p-4 flex justify-between items-center shadow-lg group hover:from-amber-700 hover:to-yellow-600 transition-colors">
+                <div className="bg-gradient-to-r from-amber-600 to-yellow-500 text-white p-2 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-lg group hover:from-amber-700 hover:to-yellow-600 transition-colors">
                   <div>
-                    <h2 className="font-black text-xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">💡 Pipeline - The Opinionshare Platform</h2>
+                    <h2 className="font-black text-sm sm:text-xl uppercase tracking-wide sm:tracking-widest italic group-hover:scale-105 transition-transform">💡 Pipeline</h2>
+                    <div className="text-[8px] sm:text-xs opacity-80">The Opinionshare Platform</div>
                     {currentUser && (
-                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                        Posting as @{currentUser.username} | ⚡ {Number(currentUser.interactivity_points || 0).toFixed(1)} Interactivity Points
+                      <span className="text-[8px] sm:text-xs bg-white/20 px-1 sm:px-2 py-0.5 sm:py-1 rounded mt-1 inline-block">
+                        @{currentUser.username} | ⚡ {Number(currentUser.interactivity_points || 0).toFixed(1)} pts
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setShowNewPostModal(true)}
-                      className="win95-button px-4 py-2 bg-white text-amber-700 font-black text-sm hover:bg-amber-100 hover:scale-105 transition-all"
-                    >
-                      📝 Submit Opinion
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => setShowNewPostModal(true)}
+                    className="win95-button px-2 sm:px-4 py-1 sm:py-2 bg-white text-amber-700 font-black text-[10px] sm:text-sm hover:bg-amber-100 hover:scale-105 transition-all"
+                  >
+                    📝 Post
+                  </button>
                 </div>
 
                 {!currentUser && (
@@ -1529,26 +1528,26 @@ export default function Explore() {
                 {/* Post Feed - flows bottom to top */}
                 <div 
                   ref={pipelineContainerRef}
-                  className="flex-1 overflow-y-auto space-y-4 win95-inset bg-gray-100 p-4"
+                  className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 win95-inset bg-gray-100 p-2 sm:p-4"
                   style={{ display: 'flex', flexDirection: 'column-reverse' }}
                 >
                   {pipelinePosts.map((post) => (
-                    <div key={post.id} className="flex gap-2">
-                      {/* Left side replies */}
-                      <div className="w-24 space-y-1 flex flex-col justify-end">
-                        {(post.replies || []).filter(r => r.side === 'left').map((reply, idx) => (
-                          <div key={idx} className="bg-gray-200 p-1 rounded text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
+                    <div key={post.id} className="flex gap-1 sm:gap-2">
+                      {/* Left side replies - hidden on mobile, shown on larger screens */}
+                      <div className="hidden sm:flex w-20 md:w-24 space-y-1 flex-col justify-end">
+                        {(post.replies || []).filter(r => r.side === 'left').slice(0, 3).map((reply, idx) => (
+                          <div key={idx} className="bg-gray-200 p-1 rounded text-[7px] md:text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
                             <div className="flex items-center gap-1">
                               <span>{reply.displayEmoji}</span>
                               <span className="font-bold truncate">{reply.displayName}</span>
                             </div>
                             {reply.replyType === 'image' && (
-                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A IMAGE</div>
+                              <div className="bg-black text-white text-[6px] md:text-[7px] p-0.5 text-center my-0.5 font-bold">THIS IS A IMAGE</div>
                             )}
                             {reply.replyType === 'video' && (
-                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A VIDEO</div>
+                              <div className="bg-black text-white text-[6px] md:text-[7px] p-0.5 text-center my-0.5 font-bold">THIS IS A VIDEO</div>
                             )}
-                            <div className="text-gray-600 leading-tight">{reply.content}</div>
+                            <div className="text-gray-600 leading-tight truncate">{reply.content}</div>
                           </div>
                         ))}
                       </div>
@@ -1556,44 +1555,61 @@ export default function Explore() {
                       {/* Main post card - Polaroid style */}
                       <div className="flex-1 bg-white shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-amber-300 transition-all group">
                         {/* Post header */}
-                        <div className="flex items-center justify-between p-2 border-b border-gray-200">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl hover:scale-125 transition-transform cursor-pointer">{post.displayEmoji}</span>
-                            <span className="font-bold text-sm text-gray-700 hover:text-amber-600 transition-colors">{post.displayName}</span>
+                        <div className="flex items-center justify-between p-1.5 sm:p-2 border-b border-gray-200">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <span className="text-lg sm:text-xl hover:scale-125 transition-transform cursor-pointer">{post.displayEmoji}</span>
+                            <span className="font-bold text-[10px] sm:text-sm text-gray-700 hover:text-amber-600 transition-colors truncate max-w-[100px] sm:max-w-none">{post.displayName}</span>
                           </div>
-                          <span className="text-[9px] text-gray-400">{new Date(post.createdAt).toLocaleTimeString()}</span>
+                          <span className="text-[7px] sm:text-[9px] text-gray-400">{new Date(post.createdAt).toLocaleTimeString()}</span>
                         </div>
 
                         {/* Post content */}
-                        <div className="p-3">
+                        <div className="p-2 sm:p-3">
                           {/* Image/Video placeholder if applicable */}
                           {(post.postType === 'image' || post.postType === 'video') && (
-                            <div className="bg-black text-white text-center py-8 mb-3 font-black text-sm">
+                            <div className="bg-black text-white text-center py-4 sm:py-8 mb-2 sm:mb-3 font-black text-[10px] sm:text-sm">
                               THIS IS A {post.postType === 'image' ? 'IMAGE' : 'VIDEO'}
                             </div>
                           )}
                           {/* Opinion text */}
-                          <p className="text-black text-sm leading-relaxed font-medium">{post.content}</p>
+                          <p className="text-black text-[11px] sm:text-sm leading-relaxed font-medium">{post.content}</p>
+                          
+                          {/* Mobile replies preview */}
+                          {(post.replies?.length > 0) && (
+                            <div className="sm:hidden mt-2 pt-2 border-t border-gray-100">
+                              <div className="text-[8px] text-gray-500 mb-1">💬 {post.replies.length} replies</div>
+                              <div className="space-y-1 max-h-20 overflow-y-auto">
+                                {post.replies.slice(0, 2).map((reply, idx) => (
+                                  <div key={idx} className="text-[8px] bg-gray-100 p-1 rounded">
+                                    <span>{reply.displayEmoji}</span> <span className="font-bold">{reply.displayName}:</span> {reply.content}
+                                  </div>
+                                ))}
+                                {post.replies.length > 2 && (
+                                  <div className="text-[7px] text-gray-400">+{post.replies.length - 2} more...</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Post actions */}
-                        <div className="flex flex-col gap-1 p-2 border-t border-gray-200 bg-gray-50">
+                        <div className="flex flex-col gap-1 p-1.5 sm:p-2 border-t border-gray-200 bg-gray-50">
                           <div className="flex items-center justify-between gap-1">
                             <button 
                               onClick={() => handleBlockPost(post.id)}
-                              className="text-[8px] bg-red-100 hover:bg-red-200 px-2 py-1 rounded font-bold text-red-700 hover:scale-105 transition-all"
+                              className="text-[6px] sm:text-[8px] bg-red-100 hover:bg-red-200 px-1 sm:px-2 py-1 rounded font-bold text-red-700 hover:scale-105 transition-all"
                             >
-                              🚫 Block This Block
+                              🚫 Block
                             </button>
                             <button 
                               onClick={handleHundredKInteraction}
-                              className="flex-1 text-[6px] bg-gradient-to-r from-orange-100 to-yellow-100 hover:from-orange-200 hover:to-yellow-200 px-1 py-1 rounded font-bold text-orange-800 hover:scale-[1.02] transition-all leading-tight text-center"
+                              className="flex-1 text-[4px] sm:text-[6px] bg-gradient-to-r from-orange-100 to-yellow-100 hover:from-orange-200 hover:to-yellow-200 px-0.5 sm:px-1 py-1 rounded font-bold text-orange-800 hover:scale-[1.02] transition-all leading-tight text-center"
                             >
-                              💰 $100K for Idea Agreement / Disagreement Terms & Conditions Apply + Support Fraud Donation Fund + Prediction Betting + Creator Social Credit Subscription Tip + Taxes on Tariffs from the Galactic Federation + Fractional Interactivity Tokens
+                              💰 $100K Agreement/Disagreement T&C + Fraud Fund + Betting + Tips + Galactic Taxes + Tokens
                             </button>
                             <button 
                               onClick={() => setShowReplyModal(post.id)}
-                              className="text-[8px] bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded font-bold text-blue-700 hover:scale-105 transition-all"
+                              className="text-[6px] sm:text-[8px] bg-blue-100 hover:bg-blue-200 px-1 sm:px-2 py-1 rounded font-bold text-blue-700 hover:scale-105 transition-all"
                             >
                               💬 Reply
                             </button>
@@ -1601,21 +1617,21 @@ export default function Explore() {
                         </div>
                       </div>
 
-                      {/* Right side replies */}
-                      <div className="w-24 space-y-1 flex flex-col justify-end">
-                        {(post.replies || []).filter(r => r.side === 'right').map((reply, idx) => (
-                          <div key={idx} className="bg-gray-200 p-1 rounded text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
+                      {/* Right side replies - hidden on mobile, shown on larger screens */}
+                      <div className="hidden sm:flex w-20 md:w-24 space-y-1 flex-col justify-end">
+                        {(post.replies || []).filter(r => r.side === 'right').slice(0, 3).map((reply, idx) => (
+                          <div key={idx} className="bg-gray-200 p-1 rounded text-[7px] md:text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
                             <div className="flex items-center gap-1">
                               <span>{reply.displayEmoji}</span>
                               <span className="font-bold truncate">{reply.displayName}</span>
                             </div>
                             {reply.replyType === 'image' && (
-                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A IMAGE</div>
+                              <div className="bg-black text-white text-[6px] md:text-[7px] p-0.5 text-center my-0.5 font-bold">THIS IS A IMAGE</div>
                             )}
                             {reply.replyType === 'video' && (
-                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A VIDEO</div>
+                              <div className="bg-black text-white text-[6px] md:text-[7px] p-0.5 text-center my-0.5 font-bold">THIS IS A VIDEO</div>
                             )}
-                            <div className="text-gray-600 leading-tight">{reply.content}</div>
+                            <div className="text-gray-600 leading-tight truncate">{reply.content}</div>
                           </div>
                         ))}
                       </div>
@@ -1625,13 +1641,13 @@ export default function Explore() {
 
                 {/* New Post Modal */}
                 {showNewPostModal && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewPostModal(false)}>
-                    <div className="bg-white win95-window p-0 w-full max-w-md" onClick={e => e.stopPropagation()}>
-                      <div className="bg-amber-600 text-white p-2 flex justify-between items-center">
-                        <span className="font-bold text-sm">📝 Submit Your Opinion to the Void</span>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowNewPostModal(false)}>
+                    <div className="bg-white win95-window p-0 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                      <div className="bg-amber-600 text-white p-2 flex justify-between items-center sticky top-0">
+                        <span className="font-bold text-xs sm:text-sm">📝 Submit Your Opinion to the Void</span>
                         <button onClick={() => setShowNewPostModal(false)} className="hover:bg-amber-700 px-2">✕</button>
                       </div>
-                      <div className="p-4 space-y-4">
+                      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                         <div>
                           <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Post Type</label>
                           <div className="flex gap-2">
@@ -1673,13 +1689,13 @@ export default function Explore() {
 
                 {/* Reply Modal */}
                 {showReplyModal && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReplyModal(null)}>
-                    <div className="bg-white win95-window p-0 w-full max-w-md" onClick={e => e.stopPropagation()}>
-                      <div className="bg-blue-600 text-white p-2 flex justify-between items-center">
-                        <span className="font-bold text-sm">💬 Add Reply</span>
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowReplyModal(null)}>
+                    <div className="bg-white win95-window p-0 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                      <div className="bg-blue-600 text-white p-2 flex justify-between items-center sticky top-0">
+                        <span className="font-bold text-xs sm:text-sm">💬 Add Reply</span>
                         <button onClick={() => setShowReplyModal(null)} className="hover:bg-blue-700 px-2">✕</button>
                       </div>
-                      <div className="p-4 space-y-4">
+                      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                         <div>
                           <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Reply Type</label>
                           <div className="flex gap-2">

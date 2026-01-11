@@ -84,7 +84,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="w-full max-w-5xl bg-[#eef2f3]/95 rounded-[60px] shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-[16px] border-[#d9dfe1] relative overflow-hidden flex flex-col p-8 md:p-12 backdrop-blur-sm">
+      <div className="w-full max-w-5xl bg-[#eef2f3]/95 rounded-[30px] sm:rounded-[45px] md:rounded-[60px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] sm:shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-[8px] sm:border-[12px] md:border-[16px] border-[#d9dfe1] relative overflow-hidden flex flex-col p-4 sm:p-8 md:p-12 backdrop-blur-sm">
         {/* Wii background accents */}
         <div className="absolute inset-0 opacity-20 pointer-events-none">
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full border-[30px] border-blue-200"></div>
@@ -92,60 +92,60 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col">
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-4 sm:mb-6">
                 <div>
-                    <div className="text-4xl md:text-5xl font-black text-[#5a5e62] tracking-tighter italic drop-shadow-sm hover:text-blue-500 hover:scale-105 transition-all cursor-default">
+                    <div className="text-2xl sm:text-4xl md:text-5xl font-black text-[#5a5e62] tracking-tighter italic drop-shadow-sm hover:text-blue-500 hover:scale-105 transition-all cursor-default">
                         Maxfolio<span className="text-[#00a0e9]">Adventurer</span>
                     </div>
-                    <div className="text-sm font-bold text-gray-400 mt-1 ml-1 tracking-widest uppercase hover:text-gray-600 transition-colors cursor-default">
+                    <div className="text-[10px] sm:text-sm font-bold text-gray-400 mt-1 ml-1 tracking-widest uppercase hover:text-gray-600 transition-colors cursor-default">
                         Welcome to the Void
                     </div>
                 </div>
-                <div className="bg-white/80 px-6 md:px-8 py-3 rounded-full text-lg md:text-xl font-black text-gray-500 border-2 border-white shadow-inner hover:shadow-lg hover:text-blue-400 transition-all cursor-wait">
+                <div className="bg-white/80 px-3 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full text-sm sm:text-lg md:text-xl font-black text-gray-500 border-2 border-white shadow-inner hover:shadow-lg hover:text-blue-400 transition-all cursor-wait">
                     {time || '--:-- --'}
                 </div>
             </div>
 
-            {/* Row 1: 5 items, Row 2: 6 items (smaller) */}
-            <div className="flex flex-col gap-3 md:gap-4 flex-1 px-2">
-                {/* First row - 5 items */}
-                <div className="grid grid-cols-5 gap-3 md:gap-4">
+            {/* Row 1: 5 items, Row 2: 6 items (smaller) - Mobile: 3 cols, then 3 cols */}
+            <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 flex-1 px-1 sm:px-2">
+                {/* First row - 5 items (3 cols on mobile) */}
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
                     {channels.slice(0, 5).map((ch, idx) => (
                         <div 
                             key={idx}
                             onClick={ch.onClick}
                             className={`
-                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
+                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-xl sm:rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] sm:shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
                                 border-2 border-white/80 flex flex-col items-center justify-center cursor-pointer
                                 hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
                                 aspect-square
                             `}
                         >
-                            <div className="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition-transform">{ch.icon}</div>
-                            <div className="text-[8px] md:text-[10px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-1">{ch.title}</div>
-                            <div className="text-[7px] md:text-[8px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors">{ch.desc}</div>
-                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
+                            <div className="text-xl sm:text-2xl md:text-3xl mb-0.5 sm:mb-1 group-hover:scale-110 transition-transform">{ch.icon}</div>
+                            <div className="text-[6px] sm:text-[8px] md:text-[10px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-0.5 sm:px-1">{ch.title}</div>
+                            <div className="text-[5px] sm:text-[7px] md:text-[8px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors hidden sm:block">{ch.desc}</div>
+                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-xl sm:rounded-t-2xl"></div>
                         </div>
                     ))}
                 </div>
-                {/* Second row - 6 items (smaller to fit new Opinions option) */}
-                <div className="grid grid-cols-6 gap-2 md:gap-3">
+                {/* Second row - 6 items (3 cols on mobile) */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-2 md:gap-3">
                     {channels.slice(5).map((ch, idx) => (
                         <div 
                             key={idx + 5}
                             onClick={ch.onClick}
                             className={`
-                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
+                                relative bg-gradient-to-br from-white to-[#f0f3f5] rounded-xl sm:rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] sm:shadow-[0_8px_20px_rgba(0,0,0,0.1)] 
                                 border-2 border-white/80 flex flex-col items-center justify-center cursor-pointer
                                 hover:scale-105 hover:shadow-2xl transition-all group overflow-hidden active:scale-95
                                 aspect-square
                                 ${ch.title === 'Musicianship' ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' : ''}
                             `}
                         >
-                            <div className="text-xl md:text-2xl mb-0.5 group-hover:scale-110 transition-transform">{ch.icon}</div>
-                            <div className="text-[7px] md:text-[9px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-0.5">{ch.title}</div>
-                            <div className="text-[6px] md:text-[7px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors text-center px-0.5">{ch.desc}</div>
-                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-2xl"></div>
+                            <div className="text-lg sm:text-xl md:text-2xl mb-0.5 group-hover:scale-110 transition-transform">{ch.icon}</div>
+                            <div className="text-[5px] sm:text-[7px] md:text-[9px] font-black text-gray-700 text-center leading-tight uppercase tracking-tighter group-hover:text-blue-500 transition-colors px-0.5">{ch.title}</div>
+                            <div className="text-[4px] sm:text-[6px] md:text-[7px] text-gray-400 mt-0.5 font-bold group-hover:text-gray-600 transition-colors text-center px-0.5 hidden sm:block">{ch.desc}</div>
+                            <div className="absolute top-0 left-0 w-full h-[45%] bg-white/40 rounded-t-xl sm:rounded-t-2xl"></div>
                         </div>
                     ))}
                 </div>
