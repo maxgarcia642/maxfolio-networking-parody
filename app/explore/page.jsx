@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { generateJob, generateMatch } from '../../lib/generators';
+import { generateJob, generateMatch, generateOpinion, generateReply } from '../../lib/generators';
 
 // Piano note frequencies
 const NOTE_FREQUENCIES = {
@@ -78,6 +78,19 @@ export default function Explore() {
   const destinationRef = useRef(null);
   
   const [timeline, setTimeline] = useState({ month: 'JAN', year: 2025 });
+  
+  // Pipeline/Thoughts state
+  const [pipelinePosts, setPipelinePosts] = useState([]);
+  const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [newPostContent, setNewPostContent] = useState('');
+  const [newPostType, setNewPostType] = useState('text');
+  const [showReplyModal, setShowReplyModal] = useState(null); // post id to reply to
+  const [replyContent, setReplyContent] = useState('');
+  const [replyType, setReplyType] = useState('text');
+  const [replySide, setReplySide] = useState('left');
+  const [blockedPostMessage, setBlockedPostMessage] = useState(null);
+  const pipelineContainerRef = useRef(null);
 
   // Refresh current user data from database
   const refreshCurrentUser = useCallback(async () => {
@@ -603,6 +616,185 @@ export default function Explore() {
     return () => clearInterval(jobTicker);
   }, []);
 
+  // Pipeline: Generate initial posts and keep them flowing
+  useEffect(() => {
+    if (activeTab === 'thoughts') {
+      // Generate initial posts
+      const initialPosts = Array.from({ length: 15 }, () => ({
+        ...generateOpinion(),
+        replies: Math.random() > 0.6 ? Array.from({ length: Math.floor(Math.random() * 4) + 1 }, () => generateReply()) : []
+      }));
+      setPipelinePosts(initialPosts);
+      
+      // Auto-generate new posts periodically (flowing from bottom to top)
+      const postInterval = setInterval(() => {
+        const newPost = {
+          ...generateOpinion(),
+          replies: Math.random() > 0.7 ? Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => generateReply()) : []
+        };
+        setPipelinePosts(prev => [...prev.slice(-30), newPost]); // Keep max 30 posts, add new at end
+      }, 3500);
+      
+      return () => clearInterval(postInterval);
+    }
+  }, [activeTab]);
+
+  // Pipeline: Auto-scroll effect (posts flow from bottom to top)
+  useEffect(() => {
+    if (activeTab === 'thoughts' && pipelineContainerRef.current) {
+      const container = pipelineContainerRef.current;
+      const scrollInterval = setInterval(() => {
+        if (container.scrollTop < container.scrollHeight - container.clientHeight) {
+          container.scrollTop += 1;
+        }
+      }, 50);
+      return () => clearInterval(scrollInterval);
+    }
+  }, [activeTab]);
+
+  // Pipeline: Submit new post
+  const handleSubmitPost = async () => {
+    if (!newPostContent.trim()) return;
+    
+    const displayName = currentUser ? currentUser.username : `Anonymous_${Math.floor(Math.random() * 9999)}`;
+    const displayEmoji = ['🤔', '😤', '🙃', '💭', '🎯', '🌀'][Math.floor(Math.random() * 6)];
+    
+    const newPost = {
+      id: Math.random(),
+      content: newPostContent,
+      displayName: displayName,
+      displayEmoji: displayEmoji,
+      postType: newPostType,
+      createdAt: new Date().toISOString(),
+      replies: []
+    };
+    
+    setPipelinePosts(prev => [...prev, newPost]);
+    setNewPostContent('');
+    setNewPostType('text');
+    setShowNewPostModal(false);
+    
+    // Award interactivity points if logged in
+    if (currentUser) {
+      try {
+        await fetch('/api/pipeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create_post',
+            username: currentUser.username,
+            display_name: displayName,
+            display_emoji: displayEmoji,
+            content: newPostContent,
+            post_type: newPostType
+          })
+        });
+        await refreshCurrentUser();
+      } catch (e) { console.log('Could not save post to DB'); }
+    }
+  };
+
+  // Pipeline: Submit reply
+  const handleSubmitReply = async (postId) => {
+    if (!replyContent.trim()) return;
+    
+    const displayName = currentUser ? currentUser.username : `Reply_Bot_${Math.floor(Math.random() * 999)}`;
+    const displayEmoji = ['👀', '🤝', '💯', '🔥', '⭐'][Math.floor(Math.random() * 5)];
+    
+    const newReply = {
+      id: Math.random(),
+      content: replyContent,
+      displayName: displayName,
+      displayEmoji: displayEmoji,
+      replyType: replyType,
+      side: replySide,
+      createdAt: new Date().toISOString()
+    };
+    
+    setPipelinePosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, replies: [...(post.replies || []), newReply] }
+        : post
+    ));
+    
+    setReplyContent('');
+    setReplyType('text');
+    setShowReplyModal(null);
+    
+    // Award interactivity points if logged in
+    if (currentUser) {
+      try {
+        await fetch('/api/pipeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create_reply',
+            post_id: postId,
+            username: currentUser.username,
+            display_name: displayName,
+            display_emoji: displayEmoji,
+            content: replyContent,
+            reply_type: replyType,
+            side: replySide
+          })
+        });
+        await refreshCurrentUser();
+      } catch (e) { console.log('Could not save reply to DB'); }
+    }
+  };
+
+  // Pipeline: Block post
+  const handleBlockPost = async (postId) => {
+    setPipelinePosts(prev => prev.filter(post => post.id !== postId));
+    setBlockedPostMessage('The user is no longer with us send regards to their family tree');
+    setTimeout(() => setBlockedPostMessage(null), 3000);
+    
+    // Award interactivity points if logged in
+    if (currentUser) {
+      try {
+        await fetch('/api/pipeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'block_post',
+            post_id: postId,
+            username: currentUser.username
+          })
+        });
+        await refreshCurrentUser();
+      } catch (e) { console.log('Could not record block'); }
+    }
+  };
+
+  // Pipeline: $100K Interaction
+  const handleHundredKInteraction = async () => {
+    if (!currentUser) {
+      alert('You must be signed in to make a $100K interaction!');
+      setActiveTab('signin');
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'hundred_k_interaction',
+          username: currentUser.username
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        await refreshCurrentUser();
+        alert(`💸 $100K deducted from your net worth!\n\nPrevious: $${data.previousNetWorth.toLocaleString()}\nNew: $${data.newNetWorth.toLocaleString()}\n\n+0.1 Interactivity Points awarded!\n\n${data.message}`);
+      }
+    } catch (e) {
+      alert('Transaction failed. The Galactic Federation is experiencing technical difficulties.');
+    }
+  };
+
   const formatDuration = (startDate) => {
     if (!startDate) return 'Unknown';
     const start = new Date(startDate).getTime();
@@ -641,6 +833,7 @@ export default function Explore() {
   // Get display values for current user - ensure numbers
   const userBalance = Math.round(Number(currentUser?.balance) || 0);
   const userNetWorth = Math.round(Number(currentUser?.net_worth) || 0);
+  const userInteractivityPoints = Number(currentUser?.interactivity_points || 0).toFixed(1);
   const userJobs = currentUser?.jobs || [];
   const userRelationships = currentUser?.relationships || [];
   const userSongs = currentUser?.songs || [];
@@ -683,6 +876,7 @@ export default function Explore() {
             {id: 'jobs', label: 'Available Jobs', icon: '💼'},
             {id: 'matchmaker', label: 'Matchmaker', icon: '❤️'},
             {id: 'economy', label: 'Economy', icon: '💹'},
+            {id: 'thoughts', label: 'Thoughts', icon: '💡'},
             {id: 'artist', label: 'Artist', icon: '🎹'}
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
@@ -720,9 +914,16 @@ export default function Explore() {
                         </div>
                       </div>
                       
-                      <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
-                        <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-600 transition-colors">⏱️ Member Since</div>
-                        <div className="text-lg font-bold group-hover:text-blue-700 transition-colors">{formatDuration(currentUser.member_since || currentUser.created_at)}</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
+                          <div className="text-[10px] text-gray-500 uppercase group-hover:text-blue-600 transition-colors">⏱️ Member Since</div>
+                          <div className="text-lg font-bold group-hover:text-blue-700 transition-colors">{formatDuration(currentUser.member_since || currentUser.created_at)}</div>
+                        </div>
+                        <div className="win95-inset p-3 bg-amber-50 hover:bg-amber-100 transition-colors cursor-default group">
+                          <div className="text-[10px] text-gray-500 uppercase group-hover:text-amber-600 transition-colors">⚡ Interactivity Points</div>
+                          <div className="text-lg font-bold text-amber-600 group-hover:text-amber-700 group-hover:scale-105 transition-all">{userInteractivityPoints}</div>
+                          <div className="text-[8px] text-gray-400 group-hover:text-gray-600 leading-tight">Pipeline engagement score</div>
+                        </div>
                       </div>
                       
                       <div className="win95-inset p-3 hover:bg-gray-50 transition-colors cursor-default group">
@@ -959,6 +1160,11 @@ export default function Explore() {
                               <div className="text-2xl font-black text-purple-600 group-hover/item:scale-105 transition-transform">{uTotalNotes}</div>
                               <div className="text-[9px] text-gray-500 group-hover/item:text-gray-700 transition-colors">{(u.songs || []).length} composition{(u.songs || []).length !== 1 ? 's' : ''}</div>
                             </div>
+                            <div className="win95-inset bg-amber-50 p-3 hover:bg-amber-100 transition-colors cursor-default group/item">
+                              <div className="text-[10px] font-bold text-amber-700 uppercase mb-2 group-hover/item:text-amber-900 transition-colors">⚡ Interactivity Points</div>
+                              <div className="text-2xl font-black text-amber-600 group-hover/item:scale-105 transition-transform">{Number(u.interactivity_points || 0).toFixed(1)}</div>
+                              <div className="text-[9px] text-gray-500 group-hover/item:text-gray-700 transition-colors">Pipeline engagement</div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1168,6 +1374,255 @@ export default function Explore() {
                   <h3 className="font-bold border-b border-gray-400 mb-1 group-hover:text-red-600">MARKETS 5,000</h3>
                   {['S&P 0', 'Nasdaq-Void', 'Farmland', 'Annuity', 'Hedge', 'Commodity', 'Resource', 'Retire'].map(l => <TickerItem key={l} label={l} />)}
                 </div>
+              </div>
+            )}
+
+            {/* THOUGHTS/PIPELINE TAB */}
+            {activeTab === 'thoughts' && (
+              <div className="space-y-4 h-full flex flex-col relative">
+                {/* Blocked post notification */}
+                {blockedPostMessage && (
+                  <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3 rounded-lg shadow-2xl border-2 border-red-500 animate-pulse">
+                    <span className="text-red-400 font-black">☠️</span> {blockedPostMessage}
+                  </div>
+                )}
+
+                {/* Fake URL Bar */}
+                <div className="win95-inset bg-white p-1 flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500 px-2">🔒</span>
+                  <div className="flex-1 bg-gray-100 px-2 py-1 text-[11px] font-mono text-gray-600 truncate">
+                    https://pipeline.void/thoughts/feed?user={currentUser?.username || 'anonymous'}&session={Math.floor(Math.random() * 99999)}
+                  </div>
+                  <button className="text-[10px] px-2 hover:bg-gray-200 transition-colors">🔄</button>
+                </div>
+                
+                {/* Header */}
+                <div className="bg-gradient-to-r from-amber-600 to-yellow-500 text-white p-4 flex justify-between items-center shadow-lg group hover:from-amber-700 hover:to-yellow-600 transition-colors">
+                  <div>
+                    <h2 className="font-black text-xl uppercase tracking-widest italic group-hover:scale-105 transition-transform">💡 Pipeline - The Opinionshare Platform</h2>
+                    {currentUser && (
+                      <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                        Posting as @{currentUser.username} | ⚡ {Number(currentUser.interactivity_points || 0).toFixed(1)} Interactivity Points
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setShowNewPostModal(true)}
+                      className="win95-button px-4 py-2 bg-white text-amber-700 font-black text-sm hover:bg-amber-100 hover:scale-105 transition-all"
+                    >
+                      📝 Submit Opinion
+                    </button>
+                  </div>
+                </div>
+
+                {!currentUser && (
+                  <div className="win95-inset bg-yellow-50 p-3 text-center hover:bg-yellow-100 transition-colors">
+                    <span className="text-sm">⚠️ <strong>Sign in</strong> to earn Interactivity Points!</span>
+                  </div>
+                )}
+
+                {/* $100K Button */}
+                <button 
+                  onClick={handleHundredKInteraction}
+                  className="win95-button w-full py-3 bg-gradient-to-r from-red-100 to-orange-100 hover:from-red-200 hover:to-orange-200 hover:scale-[1.01] active:scale-[0.99] transition-all text-[10px] font-bold text-gray-700 leading-tight border-2 border-red-300"
+                >
+                  💰 $100K for Idea Agreement / Disagreement Terms & Conditions Apply + Support Fraud Donation Fund + Prediction Betting + Social Credit Subscription Tip + Taxes and Tariffs for the Galactic Federation + Interactivity Points
+                </button>
+
+                {/* Post Feed - flows bottom to top */}
+                <div 
+                  ref={pipelineContainerRef}
+                  className="flex-1 overflow-y-auto space-y-4 win95-inset bg-gray-100 p-4"
+                  style={{ display: 'flex', flexDirection: 'column-reverse' }}
+                >
+                  {pipelinePosts.map((post) => (
+                    <div key={post.id} className="flex gap-2">
+                      {/* Left side replies */}
+                      <div className="w-24 space-y-1 flex flex-col justify-end">
+                        {(post.replies || []).filter(r => r.side === 'left').map((reply, idx) => (
+                          <div key={idx} className="bg-gray-200 p-1 rounded text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
+                            <div className="flex items-center gap-1">
+                              <span>{reply.displayEmoji}</span>
+                              <span className="font-bold truncate">{reply.displayName}</span>
+                            </div>
+                            {reply.replyType === 'image' && (
+                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A IMAGE</div>
+                            )}
+                            {reply.replyType === 'video' && (
+                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A VIDEO</div>
+                            )}
+                            <div className="text-gray-600 leading-tight">{reply.content}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Main post card - Polaroid style */}
+                      <div className="flex-1 bg-white shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-amber-300 transition-all group">
+                        {/* Post header */}
+                        <div className="flex items-center justify-between p-2 border-b border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl hover:scale-125 transition-transform cursor-pointer">{post.displayEmoji}</span>
+                            <span className="font-bold text-sm text-gray-700 hover:text-amber-600 transition-colors">{post.displayName}</span>
+                          </div>
+                          <span className="text-[9px] text-gray-400">{new Date(post.createdAt).toLocaleTimeString()}</span>
+                        </div>
+
+                        {/* Post content */}
+                        <div className="p-3">
+                          {/* Image/Video placeholder if applicable */}
+                          {(post.postType === 'image' || post.postType === 'video') && (
+                            <div className="bg-black text-white text-center py-8 mb-3 font-black text-sm">
+                              THIS IS A {post.postType === 'image' ? 'IMAGE' : 'VIDEO'}
+                            </div>
+                          )}
+                          {/* Opinion text */}
+                          <p className="text-black text-sm leading-relaxed font-medium">{post.content}</p>
+                        </div>
+
+                        {/* Post actions */}
+                        <div className="flex items-center justify-between p-2 border-t border-gray-200 bg-gray-50">
+                          <button 
+                            onClick={() => handleBlockPost(post.id)}
+                            className="text-[9px] bg-red-100 hover:bg-red-200 px-2 py-1 rounded font-bold text-red-700 hover:scale-105 transition-all"
+                          >
+                            🚫 Block this block
+                          </button>
+                          <button 
+                            onClick={() => setShowReplyModal(post.id)}
+                            className="text-[9px] bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded font-bold text-blue-700 hover:scale-105 transition-all"
+                          >
+                            💬 Reply
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Right side replies */}
+                      <div className="w-24 space-y-1 flex flex-col justify-end">
+                        {(post.replies || []).filter(r => r.side === 'right').map((reply, idx) => (
+                          <div key={idx} className="bg-gray-200 p-1 rounded text-[8px] border border-gray-300 hover:bg-gray-300 transition-colors">
+                            <div className="flex items-center gap-1">
+                              <span>{reply.displayEmoji}</span>
+                              <span className="font-bold truncate">{reply.displayName}</span>
+                            </div>
+                            {reply.replyType === 'image' && (
+                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A IMAGE</div>
+                            )}
+                            {reply.replyType === 'video' && (
+                              <div className="bg-black text-white text-[7px] p-1 text-center my-1 font-bold">THIS IS A VIDEO</div>
+                            )}
+                            <div className="text-gray-600 leading-tight">{reply.content}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* New Post Modal */}
+                {showNewPostModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNewPostModal(false)}>
+                    <div className="bg-white win95-window p-0 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                      <div className="bg-amber-600 text-white p-2 flex justify-between items-center">
+                        <span className="font-bold text-sm">📝 Submit Your Opinion to the Void</span>
+                        <button onClick={() => setShowNewPostModal(false)} className="hover:bg-amber-700 px-2">✕</button>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        <div>
+                          <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Post Type</label>
+                          <div className="flex gap-2">
+                            {['text', 'image', 'video'].map(type => (
+                              <button 
+                                key={type}
+                                onClick={() => setNewPostType(type)}
+                                className={`win95-button px-3 py-1 text-xs uppercase ${newPostType === type ? 'bg-amber-200 shadow-[inset_2px_2px_#888]' : ''}`}
+                              >
+                                {type === 'text' && '📝'} {type === 'image' && '🖼️'} {type === 'video' && '🎬'} {type}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Your Opinion</label>
+                          <textarea 
+                            value={newPostContent}
+                            onChange={(e) => setNewPostContent(e.target.value)}
+                            placeholder="Share your thoughts with the void..."
+                            className="w-full h-32 p-2 border-2 border-gray-300 win95-inset resize-none text-sm"
+                          />
+                        </div>
+                        {newPostType !== 'text' && (
+                          <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                            💡 Your post will include a "{newPostType === 'image' ? 'THIS IS A IMAGE' : 'THIS IS A VIDEO'}" placeholder
+                          </div>
+                        )}
+                        <button 
+                          onClick={handleSubmitPost}
+                          className="win95-button w-full py-3 bg-amber-200 hover:bg-amber-300 font-black uppercase"
+                        >
+                          Post to Pipeline
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reply Modal */}
+                {showReplyModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReplyModal(null)}>
+                    <div className="bg-white win95-window p-0 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                      <div className="bg-blue-600 text-white p-2 flex justify-between items-center">
+                        <span className="font-bold text-sm">💬 Add Reply</span>
+                        <button onClick={() => setShowReplyModal(null)} className="hover:bg-blue-700 px-2">✕</button>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        <div>
+                          <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Reply Type</label>
+                          <div className="flex gap-2">
+                            {['text', 'image', 'video'].map(type => (
+                              <button 
+                                key={type}
+                                onClick={() => setReplyType(type)}
+                                className={`win95-button px-3 py-1 text-xs uppercase ${replyType === type ? 'bg-blue-200 shadow-[inset_2px_2px_#888]' : ''}`}
+                              >
+                                {type === 'text' && '📝'} {type === 'image' && '🖼️'} {type === 'video' && '🎬'} {type}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Side</label>
+                          <div className="flex gap-2">
+                            {['left', 'right'].map(side => (
+                              <button 
+                                key={side}
+                                onClick={() => setReplySide(side)}
+                                className={`win95-button px-3 py-1 text-xs uppercase ${replySide === side ? 'bg-blue-200 shadow-[inset_2px_2px_#888]' : ''}`}
+                              >
+                                {side === 'left' ? '⬅️' : '➡️'} {side}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-600 uppercase mb-1 block">Your Reply</label>
+                          <textarea 
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            placeholder="Add your reply..."
+                            className="w-full h-24 p-2 border-2 border-gray-300 win95-inset resize-none text-sm"
+                          />
+                        </div>
+                        <button 
+                          onClick={() => handleSubmitReply(showReplyModal)}
+                          className="win95-button w-full py-3 bg-blue-200 hover:bg-blue-300 font-black uppercase"
+                        >
+                          Submit Reply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

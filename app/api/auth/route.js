@@ -18,7 +18,7 @@ export async function POST(request) {
     
     // Find user by username
     const res = await query(
-      `SELECT username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth, created_at 
+      `SELECT username, password, job, bio, skills, portfolio_url, audio_url, balance, net_worth, interactivity_points, created_at 
        FROM profiles 
        WHERE username = $1`,
       [username]
@@ -77,6 +77,7 @@ export async function POST(request) {
         audio_url: user.audio_url,
         balance: user.balance || 1000,
         net_worth: user.net_worth || 1000,
+        interactivity_points: user.interactivity_points || 0,
         member_since: user.created_at,
         jobs,
         relationships,
